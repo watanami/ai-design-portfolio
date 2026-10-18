@@ -173,7 +173,8 @@
     sceneryDirty=false;
   }
   function draw(now){
-    frame=0;if(sceneryDirty)refreshScenery();
+    frame=0;if(!width||!height)return;
+    if(sceneryDirty)refreshScenery();
     ctx.drawImage(grassLayer,0,0,width,height);drawPutter(now);
     ctx.drawImage(flagsLayer,0,0,width,height);
     drawBall(ballAt(now),now);
@@ -182,7 +183,10 @@
   }
   function requestDraw(){if(!frame)frame=requestAnimationFrame(draw);}
   function resize(){
-    const rect=canvas.getBoundingClientRect();width=rect.width;height=rect.height;
+    const rect=canvas.getBoundingClientRect();
+    // Navigation can briefly report a hidden canvas as zero-sized.
+    if(!rect.width||!rect.height)return;
+    width=rect.width;height=rect.height;
     const dpr=window.devicePixelRatio||1;canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);sceneryDirty=true;requestDraw();
   }
   resize();new ResizeObserver(resize).observe(canvas);window.addEventListener('resize',resize);
