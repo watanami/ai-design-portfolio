@@ -3,12 +3,16 @@ document.querySelectorAll('.comparison').forEach(figure=>{
   const images=figure.querySelector('.comparison-images'), range=figure.querySelector('input[type="range"]');
   const update=()=>{images.style.setProperty('--split',`${range.value}%`);range.setAttribute('aria-valuetext',`${range.value}% Before, ${100-Number(range.value)}% After`);};
   range.addEventListener('input',update);update();
+  // Comparison images are a drag surface, not draggable image files.
+  images.querySelectorAll('img').forEach(image=>{image.draggable=false;});
+  images.addEventListener('dragstart',e=>e.preventDefault());
   let pointer=null;
   const move=e=>{const r=images.getBoundingClientRect();range.value=Math.round(Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)));update();};
-  images.addEventListener('pointerdown',e=>{if(e.button!==0||!e.isPrimary)return;pointer=e.pointerId;images.setPointerCapture(e.pointerId);move(e);});
+  images.addEventListener('pointerdown',e=>{if(e.button!==0||!e.isPrimary||pointer!==null)return;e.preventDefault();pointer=e.pointerId;images.setPointerCapture(e.pointerId);move(e);});
   images.addEventListener('pointermove',e=>{if(pointer===e.pointerId)move(e);});
   const end=e=>{if(pointer===e.pointerId){pointer=null;if(images.hasPointerCapture(e.pointerId))images.releasePointerCapture(e.pointerId);}};
   images.addEventListener('pointerup',e=>{if(pointer===e.pointerId)move(e);end(e);});images.addEventListener('pointercancel',end);
+  images.addEventListener('lostpointercapture',e=>{if(pointer===e.pointerId)pointer=null;});
 });
 const video=document.querySelector('#walkthrough');
 if(video){
