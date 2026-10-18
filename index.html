@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI for Interdisciplinary Design Portfolio — Micah Watanabe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css"><script src="golf.js" defer></script>
+</head>
+<body>
+<nav class="site-nav shell" aria-label="Portfolio"><a href="index.html" aria-current="page">Home</a><a href="album-cover.html">Album cover</a><a href="future-home.html">Future Home</a></nav>
+<main class="home shell">
+<header class="home-header"><h1 aria-label="AI for Interdisciplinary Design Portfolio">AI for Interdisciplinary Design <span class="portfolio-word"><svg class="portfolio-map" viewBox="0 0 320 150" preserveAspectRatio="none" aria-hidden="true"><defs><path id="title-green-shape" d="M27 40C49 18 81 28 112 25C153 21 179 14 215 23C241 30 273 20 291 41C311 64 304 96 282 116C262 134 231 121 207 125C166 133 142 123 109 128C77 133 47 123 27 108C7 93 8 60 27 40Z"/><clipPath id="title-green-clip"><use href="#title-green-shape"/></clipPath></defs><use class="map-land" href="#title-green-shape"/><g clip-path="url(#title-green-clip)" fill="#ffffff" opacity=".055"><path d="M-40 0H-8L142 150H110ZM24 0H56L206 150H174ZM88 0H120L270 150H238ZM152 0H184L334 150H302ZM216 0H248L398 150H366Z"/></g><g class="title-flag" transform="translate(-5 6)"><ellipse cx="270" cy="42" rx="5" ry="2.5" fill="#102b20"/><path d="M270 42V9" fill="none" stroke="#FAF8EF" stroke-width="1.8"/><path d="M271 10L291 18 271 26Z" fill="#FFE83D" stroke="#163D30" stroke-width="1.5" stroke-linejoin="round"/></g></svg><span class="portfolio-label">Portfolio</span></span></h1><p class="name">Micah Watanabe</p><p class="course">DSC 598 · Class projects</p></header>
+<div class="putting-toolbar">
+<p class="instruction" id="golf-instruction">Click or tap to place a hole and take a shot from the putter. Add places one for you; Clear empties the green.</p>
+<div class="putting-actions" aria-label="Putting green controls"><button id="add-hole" type="button">Add <span aria-hidden="true">+</span></button><button id="clear-green" type="button">Clear</button></div>
+</div>
+<div class="putting-panel">
+<canvas id="putting-green" tabindex="0" role="button" aria-label="Add a hole and putt" aria-describedby="golf-instruction golf-keyboard">An interactive putting green with a golf ball, cups and green, cream and yellow flags.</canvas>
+<div class="putting-prompt" id="putting-prompt" aria-hidden="true"><p>A little less work.<br>A little more putt.</p><span>Tap anywhere to take your first shot.</span></div>
+</div>
+<span class="sr-only" id="golf-keyboard">Focus the green and press Enter or Space to add a hole and putt. Use Clear to remove all holes.</span>
+<span class="sr-only" id="golf-status" role="status" aria-live="polite" aria-atomic="true"></span>
+<div class="project-previews">
+<a class="project-link" href="album-cover.html"><div class="project-image"><img src="assets/album-cover/final-album-cover.webp" width="1254" height="1254" alt="Final cover: a charcoal tower with lit abstract windows beneath chunky Arctic Monkeys lettering and a multicolored Favorite Worst Nightmare title." loading="lazy"></div><h2>Favorite Worst Nightmare <span aria-hidden="true">↗</span></h2><p>Album cover · Composition &amp; typography</p></a>
+<a class="project-link" href="future-home.html"><div class="project-image"><img src="assets/future-home/final-kitchen-view.webp" width="1600" height="900" alt="Kitchen beneath conical pendant lamps, looking through to the sofa and work room." loading="lazy"></div><h2>Future Home 2035 <span aria-hidden="true">↗</span></h2><p>3D environment · Plan &amp; walkthrough</p></a>
+</div>
+</main>
+</body></html>
