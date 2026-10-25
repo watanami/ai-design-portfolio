@@ -86,3 +86,6 @@ a:focus-visible,button:focus-visible,input:focus-visible,canvas:focus-visible,vi
 
 /* Center a geometric arrow instead of a font-dependent glyph. */
 .comparison-line:after{content:"";background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M3 10h14M7 6l-4 4 4 4M13 6l4 4-4 4' fill='none' stroke='%23163D30' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-position:center;background-repeat:no-repeat;background-size:20px 20px}
+
+/* Keep the expanded portfolio navigation within narrow screens. */
+.site-nav{flex-wrap:wrap;column-gap:20px;row-gap:0}
