@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hallucination Hysteria · Play the first draft</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script defer src="rules.js"></script><script defer src="charts.js"></script><script defer src="app.js"></script>
+</head>
+<body>
+<a class="skip" href="#game">Skip to game</a>
+<nav class="portfolio" aria-label="Portfolio"><a href="../index.html">Home</a><a href="../album-cover.html">Album cover</a><a href="../future-home.html">Future Home</a><a href="../hallucination-hysteria.html">Game proposal</a><a href="index.html" aria-current="page">Play the draft</a></nav>
+<main>
+<header class="masthead"><div><p class="eyebrow">AI for Design / Week 02 / Playable first draft</p><h1>Hallucination <span>Hysteria</span></h1></div><p class="tagline">Follow the arrows.<br>Find your way home.</p></header>
+<section id="game" aria-label="Hallucination Hysteria game">
+<div class="game-top"><span id="stage-label">A walk through an unreliable world</span><span id="state-label">Ready</span></div>
+<div class="stage-wrap"><canvas id="stage" width="960" height="540" aria-label="Game stage: caller on the left, your arrows on the right. Use the controls below.">A rhythm game with four arrow lanes. JavaScript and sound are needed to play.</canvas></div>
+<div class="hud"><span id="judgment">Solid arrows: hit · Hollow dashed arrows: ignore</span><span>Clarity <strong id="clarity-number">50</strong> / 100</span><span id="progress">Opening → Street → Stranger → Room</span></div>
+<div class="tap-pads" aria-label="Arrow controls"><button type="button" data-lane="0" aria-label="Left arrow"><span aria-hidden="true">←</span>Left</button><button type="button" data-lane="1" aria-label="Down arrow"><span aria-hidden="true">↓</span>Down</button><button type="button" data-lane="2" aria-label="Up arrow"><span aria-hidden="true">↑</span>Up</button><button type="button" data-lane="3" aria-label="Right arrow"><span aria-hidden="true">→</span>Right</button></div>
+<div class="message" id="message"><div><p class="eyebrow" id="message-kicker">Before you begin</p><h2 id="message-title">Keep the rhythm. Keep your bearings.</h2><p id="message-text">Sound is needed. Press the matching arrow as it meets its target on the right. Use arrow keys, WASD or the four tap pads. Ignore hollow, dashed notes.</p></div><div class="message-actions"><label id="name-label">Your name <input id="player-name" maxlength="18" value="Micah" autocomplete="off"></label><button id="main-action" type="button" disabled>Start</button><button id="back-action" type="button" hidden>Back to title</button></div></div>
+<div id="ending-credits" hidden></div>
+<div class="toolbar"><button id="pause" type="button" disabled>Pause · P / Esc</button><button id="restart" type="button" disabled>Restart · R</button><details><summary>Sound &amp; comfort</summary><div class="settings"><label for="offset">Audio offset <output id="offset-value">0 ms</output><input id="offset" type="range" min="-200" max="200" step="5" value="0"></label><p>Positive values move notes later relative to the music. Adjust while paused or before playing.</p><label for="volume">Volume<input id="volume" type="range" min="0" max="100" value="55"></label><label class="check"><input id="reduced" type="checkbox"> Reduce scenery motion</label></div></details></div>
+<p class="status" role="status" aria-live="polite" id="announcement"></p>
+<noscript><p class="notice">Enable JavaScript to play. The concept, controls and credits below remain readable.</p></noscript>
+</section>
+<div id="project-content"></div>
+<footer><a href="../hallucination-hysteria.html">Read the proposal ↗</a><a href="../index.html">Back to portfolio ↗</a><span>By Micah · November 2026</span></footer>
+</main>
+</body></html>
