@@ -9,7 +9,7 @@ let state='Ready', prior='Opening', run=R.fresh(), notes=[], openingHits=0;
 let ctx=null, bus=null, filter=null, buffer=null, bufferFile='', source=null, sourceGain=null, voices=new Set();
 let epoch=0, generation=0, scheduled=0, openingNext=3, endingStart=0, failAt=0, resumeGrace=-Infinity;
 let inputSources=new Map(), laneFlash=[0,0,0,0], callFlash=[0,0,0,0], lastJudgment='', slideUntil=0, faceSeen=false;
-let loadAction=null, mainAction=null, savedMessage=null, endingStreet=false, lostToneBeat=-1;
+let loadAction=null, mainAction=null, savedMessage=null, endingStreet=false, lostToneBeat=-1, finalFade=false;
 const asset='../assets/hallucination-hysteria/audio/';
 const reduced=$('reduced'); reduced.checked=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const active=()=>['Opening','Playing','Stage Failed','Clear Ending','Lost Ending'].includes(state);
@@ -81,7 +81,9 @@ async function startStage(index){
   const decoded=await load(config.file);if(token!==generation)return;
   buffer=decoded;bufferFile=config.file;notes=C.chart(index);scheduled=0;
   epoch=ctx.currentTime+2;filter.frequency.value=20000;
-  music(buffer,config.start,epoch,config.end-config.start,true);
+  music(buffer,config.start,epoch,config.end-config.start+(index===3?7:0),index!==3);
+  for(const n of notes)if(n.side==='caller')tone(n.lane,epoch+R.seconds(n.beat,config.bpm),'call',.16);
+  finalFade=false;
   setState('Playing');hideMessage();$('stage-label').textContent='0'+index+' / '+config.name+' · '+config.bpm+' BPM';
   announce(config.intro);
   if(document.hidden || !document.hasFocus())pause('The page lost focus. Resume when ready.');
@@ -137,7 +139,26 @@ function complete(){
  stopSound();clearInputs();setState('Stage Complete');
  show('Stage complete · Clarity '+run.clarity,C.stages[run.stage-1].complete,'Start Next Stage',()=>startStage(run.stage+1));
 }
-function credits(){stopSound();setState('Credits');show('The walk can begin again.','Music and original art credits below.','Play Again',ready);$('ending-credits').hidden=false;$('ending-credits').innerHTML=document.querySelector('#music-credits')?.innerHTML||'';}
+
+async function finish(){
+ const choice=R.ending(run.clarity);clearInputs();notes=[];endingStart=ctx.currentTime;lostToneBeat=-1;
+ setState(choice);
+ if(choice==='Lost Ending'){
+  filter.frequency.setTargetAtTime(550,ctx.currentTime,.4);
+  if(sourceGain){sourceGain.gain.cancelScheduledValues(ctx.currentTime);sourceGain.gain.setValueAtTime(.65,ctx.currentTime);sourceGain.gain.setValueAtTime(.65,ctx.currentTime+3);sourceGain.gain.linearRampToValueAtTime(0,ctx.currentTime+5);}
+  show('Was any of it real?','The Reflection sings on. The room fades back to the blurred street.','Start Again',credits);
+ }else{
+  stopSound(true);filter.frequency.value=20000;
+  tone(0,ctx.currentTime,'pulse',1.5);
+  show('I made it home.','Morning comes. The mirror shows only the Walker, headphones off. Press any arrow or Play Again to view the credits.','Play Again',credits);
+  const token=++generation;
+  try{const decoded=await load('faded-dream.mp3');if(token!==generation || !['Clear Ending','Paused'].includes(state))return;
+   buffer=decoded;bufferFile='faded-dream.mp3';music(buffer,0,ctx.currentTime+.15,Math.min(45,buffer.duration),true);
+  }catch{if(token===generation)announce('You made it home. The ending music could not load; credits and replay still work.');}
+ }
+}
+
+function credits(){++generation;stopSound(true);setState('Credits');show('The walk can begin again.','Music and original art credits below.','Play Again',ready);$('ending-credits').hidden=false;$('ending-credits').innerHTML=document.querySelector('#music-credits')?.innerHTML||'';}
 function ready(){
  ++generation;stopSound(true);clearInputs();run=R.fresh();notes=[];openingHits=0;epoch=0;resetVisuals();$('player-name').value='Micah';setState('Ready');
  $('stage-label').textContent='A walk through an unreliable world';
@@ -152,9 +173,6 @@ function tick(){
  }
  if(state==='Playing'){
   const config=C.stages[run.stage-1];
-  while(scheduled<notes.length && epoch+R.seconds(notes[scheduled].beat,config.bpm)<ctx.currentTime+.15){
-   const n=notes[scheduled++];if(n.side==='caller'&&!n.ghost)tone(n.lane,Math.max(ctx.currentTime,epoch+R.seconds(n.beat,config.bpm)),'call',.16);
-  }
   for(const n of notes){
    if(state!=='Playing')break;
    pressedLane=n.lane;
@@ -163,9 +181,18 @@ function tick(){
     else if(!held(n.lane)&&t>resumeGrace)score(R.release(n,t,config.bpm));
    }else {const result=R.expire(n,t,config.bpm);if(result&&result!=='Pass')score(result);}
   }
-  if(state==='Playing'&&t>=config.end-config.start)complete();
+  if(state==='Playing' && run.stage===3 && !finalFade && t>=config.end-config.start-2){
+   finalFade=true;
+   if(run.clarity>50 && sourceGain){sourceGain.gain.cancelScheduledValues(ctx.currentTime);sourceGain.gain.setValueAtTime(.8,ctx.currentTime);sourceGain.gain.linearRampToValueAtTime(0,epoch+config.end-config.start);}
+  }
+  if(state==='Playing'&&t>=config.end-config.start){if(run.stage===3)finish();else complete();}
  }
  if(state==='Stage Failed'&&ctx.currentTime>=failAt)startStage(run.stage);
+ if(state==='Lost Ending'){
+  const age=ctx.currentTime-endingStart;
+  if(age<5){const b=Math.floor(age*115/60);if(b!==lostToneBeat){lostToneBeat=b;tone(b%4,ctx.currentTime,'call',.2);}}
+  if(age>=5&&!endingStreet){endingStreet=true;stopSound(true);announce('The blurred street returns. Start Again leads to the credits.');}
+ }
  draw(t);requestAnimationFrame(tick);
 }
 function arrow(x,y,lane,fill=true,ghost=false,size=19){
@@ -183,11 +210,13 @@ function person(x,y,color,headphones=true,reflection=false){
  g.restore();
 }
 function scenery(t){
- const stage=run.stage,opening=state==='Opening'||state==='Ready',loss=opening?Math.max(.25,1-openingHits*.17):1-run.clarity/100;
+ const visualState=state==='Paused'?prior:state;
+ const clear=visualState==='Clear Ending',lost=visualState==='Lost Ending';
+ const stage=endingStreet?0:run.stage,opening=visualState==='Opening'||visualState==='Ready',loss=clear?0:lost?1:opening?Math.max(.25,1-openingHits*.17):1-run.clarity/100;
  g.save();g.filter='blur('+(loss*4)+'px)';
  const motion=reduced.checked?0:Math.sin(t*.8)*loss*(stage===3?8:3);
  g.translate(motion,0);if(!reduced.checked && state==='Stage Failed')g.transform(1,0,.08*Math.sin(t*12),1,0,0);
- g.fillStyle=stage===3?'#21152f':'#111425';g.fillRect(-20,0,1000,540);
+ g.fillStyle=clear?'#61505b':stage===3?'#21152f':'#111425';g.fillRect(-20,0,1000,540);
  if(stage!==3){
   g.fillStyle='#1c1c30';[[0,120,150],[150,70,130],[280,135,160],[440,60,130],[570,130,140],[710,80,250]].forEach(([x,y,w])=>g.fillRect(x,y,w,330-y));
   g.strokeStyle='#393248';g.lineWidth=2;g.beginPath();g.moveTo(0,425);g.lineTo(960,425);g.moveTo(0,500);g.lineTo(960,455);g.stroke();
@@ -201,9 +230,10 @@ function scenery(t){
   }
  }else{
   g.strokeStyle='#64516e';g.lineWidth=5;g.strokeRect(115,235,230,225);g.fillStyle='#141226';g.fillRect(120,240,220,215);
-  person(235,323,'#2EC4B6',true,true);g.strokeStyle='#64516e';g.strokeRect(470,300,190,125);g.fillRect(470,305,185,120);
+  person(235,323,clear?'#F3E8D2':'#2EC4B6',!clear,!clear);g.strokeStyle='#64516e';g.strokeRect(470,300,190,125);g.fillRect(470,305,185,120);
  }
- person(735,330,'#F3E8D2');
+ person(735,330,'#F3E8D2',!clear);
+ if(clear){g.fillStyle='rgba(255,206,139,.15)';g.fillRect(0,0,960,540);}
  g.fillStyle='rgba(122,76,255,'+(loss*.15)+')';g.fillRect(-20,0,1000,540);g.restore();
 }
 function draw(t){
