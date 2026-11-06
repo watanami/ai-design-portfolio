@@ -7,7 +7,7 @@ const colors=['#B79AFF','#2EC4B6','#F3E8D2','#FF9A3C'], angles=[-Math.PI/2,Math.
 const pitches=[220,277.18,329.63,440], keys={ArrowLeft:0,a:0,ArrowDown:1,s:1,ArrowUp:2,w:2,ArrowRight:3,d:3};
 let state='Ready', prior='Playing', run=R.fresh(), notes=[];
 let ctx=null, bus=null, filter=null, buffer=null, bufferFile='', source=null, sourceGain=null, voices=new Set();
-let epoch=0, generation=0, endingStart=0, failAt=0, resumeGrace=-Infinity, frozenTime=0;
+let epoch=0, generation=0, endingStart=0, resumeGrace=-Infinity, frozenTime=0;
 let inputSources=new Map(), laneFlash=[0,0,0,0], callFlash=[0,0,0,0], lastJudgment='', slideUntil=0, faceSeen=false;
 let loadAction=null, mainAction=null, savedMessage=null, endingStreet=false, lostToneBeat=-1, finalFade=false;
 const asset='../assets/hallucination-hysteria/audio/';
@@ -25,35 +25,14 @@ const now=()=>{
 const eventTime=stamp=>stamp===undefined?now():R.eventTime(now(),stamp,performance.now());
 const sceneImages={};
 for(const [key,file] of Object.entries({street:'street',stop:'bus-stop',room:'room',clear:'clear'})){const im=new Image();im.src='art/'+file+'.png';sceneImages[key]=im;}
-let sceneStage=1,story=null,storyLine=-1;
+let sceneStage=1,story=null;
 const playerName=()=>($('player-name').value.trim()||'Walker');
-const storyPages={
- 2:[
-  {title:'The last bus has already gone.',narration:'You reach the shelter. The timetable says the last bus left at 2:47. Your phone still says 2:47. Someone on the bench turns before you speak.',speaker:'STRANGER',line:()=>playerName()+'. You’re going the wrong way.'},
-  {title:'Someone knows the way.',narration:'“How do you know my name?” you ask. The Stranger points past the next streetlight. You can see your building, but the road seems longer than it should.',speaker:'STRANGER',line:()=> 'You’ve passed this stop twice. Home is past that light. Keep your own rhythm. Don’t follow the other footsteps.'}
- ],
- 3:[
-  {title:'Your key still fits.',narration:'The bus never comes. You follow the Stranger’s gesture and walk the last block. Your door opens. Your keys land where you always leave them. In the mirror, someone looks up before you do.',speaker:'WALKER',line:()=> 'This is my room. So why does it feel as if someone got here first?'},
-  {title:'Finish the song.',narration:'You hold still. Your reflection does not. The music in your headphones is the only thing that has stayed predictable all night.',speaker:'REFLECTION',line:()=> 'You made it home. Why are you still listening?'}
- ]
-};
-const stageLines={
- 1:[[0,'WALKER','The bus stop is two blocks away. One step, then another.'],[24,'WALKER','That shop should be behind me. I’ll keep moving.'],[56,'WALKER','The lamps are in time with the music. Or are my steps?'],[80,'WALKER','The shelter. Someone is waiting there.']],
- 2:[[0,'STRANGER',()=>playerName()+', don’t wait for the bus. It isn’t coming.'],[24,'WALKER','How did you know where I was going?'],[48,'STRANGER','You look toward that window every time you pass.'],[72,'WALKER','My building. I can see it now.'],[88,'STRANGER','Then go. Keep walking.']],
- 3:[[0,'WALKER','My door. My keys. My room.'],[20,'REFLECTION','You came home. Why are you still afraid?'],[48,'WALKER','Because you moved before I did.'],[80,'REFLECTION','Then stop watching me. Finish the song.'],[112,'WALKER','One last phrase. Then I take these off.']]
-};
-function storyCaption(t){
- if(state!=='Playing')return;
- const rows=stageLines[run.stage],beat=t*bpm()/60;
- const index=Math.max(0,rows.findLastIndex(row=>beat>=row[0]));
- if(index!==storyLine){storyLine=index;const row=rows[index];$('dialogue-speaker').textContent=row[1];$('dialogue-line').textContent=typeof row[2]==='function'?row[2]():row[2];}
-}
 const held=lane=>[...inputSources.values()].includes(lane);
 function announce(text){$('announcement').textContent=text;}
 function show(title,text,button,action,kicker=state) {
   savedMessage={title,text,button,action,kicker};
   $('message').hidden=false;$('message-title').textContent=title;$('message-text').textContent=text;
-  $('message-kicker').textContent=kicker;$('main-action').textContent=button;
+  $('message-kicker').textContent=kicker;$('message-kicker').hidden=!kicker;$('message-text').hidden=!text;$('main-action').textContent=button;
   $('main-action').disabled=!action;mainAction=action;
   $('name-label').hidden=state!=='Ready';
   $('back-action').hidden=state!=='Error';
@@ -65,8 +44,8 @@ function setState(next){
  state=next;$('state-label').textContent=next;
  const cinematic=['Ready','Story','Credits','Clear Ending','Lost Ending'].includes(next==='Paused'?prior:next);
  $('game').classList.toggle('cinematic',cinematic);
- $('story-details').hidden=next!=='Story';
- $('skip-story').hidden=next!=='Story';
+
+
  $('pause').disabled=!(active()||state==='Paused');
  $('pause').textContent=state==='Paused'?'Resume · P / Esc':'Pause · P / Esc';
  $('restart').disabled=!(['Playing','Stage Failed'].includes(state)||state==='Paused'&&prior==='Playing');
@@ -105,7 +84,7 @@ function music(buf,start,when,duration,fadeOut=true){
 }
 function resetVisuals(){lastJudgment='';slideUntil=0;faceSeen=false;endingStreet=false;laneFlash.fill(0);callFlash.fill(0);$('ending-credits').hidden=true;}
 async function startStage(index){
- const token=++generation;const config=C.stages[index-1];stopSound(bufferFile!==config.file);clearInputs();run=R.fresh(index);sceneStage=index;notes=[];story=null;storyLine=-1;resetVisuals();
+ const token=++generation;const config=C.stages[index-1];stopSound(bufferFile!==config.file);clearInputs();run=R.fresh(index);sceneStage=index;notes=[];story=null;resetVisuals();
  setState('Loading');show('Entering '+config.name+'…','Loading this stage’s recording.','Loading',null);
  loadAction=()=>startStage(index);
  try{
@@ -115,21 +94,21 @@ async function startStage(index){
   music(buffer,config.start,epoch,config.end-config.start+(index===3?7:0),index!==3);
   for(const n of notes)if(n.side==='caller')tone(n.lane,epoch+R.seconds(n.beat,config.bpm),'call',.16);
   finalFade=false;
-  setState('Playing');hideMessage();$('stage-label').textContent='0'+index+' / '+config.name+' · '+config.bpm+' BPM';
+  setState('Playing');hideMessage();$('stage-label').textContent='0'+index+' / '+config.name+' · 2:47 a.m.';
   $('objective').textContent=config.objective;announce(config.intro);$('game').scrollIntoView({block:'start'});
   if(document.hidden || !document.hasFocus())pause('The page lost focus. Resume when ready.');
  }catch(error){if(token!==generation)return;setState('Error');show('The track could not load',error.message+' Check the connection and try again.','Retry',loadAction);}
 }
 function score(result){
- run.clarity=R.change(run.clarity,result);
- if(result==='Perfect'||result==='Good'){run.hits++;run.combo++;run.bestCombo=Math.max(run.bestCombo,run.combo);tone(pressedLane);faceSeen=true;laneFlash[pressedLane]=ctx.currentTime+.18;}
+ run.clarity=R.change(run.clarity,result,run.stage);
+ if(result==='Perfect'||result==='Good'){run.hits++;run.combo++;run.bestCombo=Math.max(run.bestCombo,run.combo);tone(pressedLane);faceSeen=true;laneFlash[pressedLane]=ctx.currentTime+.32;}
  if(result==='Miss'){run.combo=0;run.misses++;tone(pressedLane,ctx.currentTime,'miss');slideUntil=ctx.currentTime+.35;}
- lastJudgment=result+(R.delta[result]>0?' +':' ')+(R.delta[result]||'');
- if(run.clarity===0 && state==='Playing'){stopSound();clearInputs();failAt=ctx.currentTime+1.2;setState('Stage Failed');show('The world slips away.','Clarity ran out. This stage will restart; your journey stays here.','Restart Stage',()=>startStage(run.stage));}
+ const amount=R.points(result,run.stage);lastJudgment=result+(amount>0?' +':' ')+(amount||'');
+ if(run.clarity===0 && state==='Playing'){stopSound();clearInputs();setState('Stage Failed');show('The world slips away.','The scene overwhelmed you, but you are still here. Take a breath. Restart this chapter when you are ready.','Restart Stage',()=>startStage(run.stage));}
 }
 let pressedLane=0;
 function press(lane,id,stamp){
- if(state==='Clear Ending'){credits();return;}
+ if(state==='Clear Ending'){ready();return;}
  if(state!=='Playing'||inputSources.has(id))return;
  const already=held(lane);inputSources.set(id,lane);document.querySelector('[data-lane="'+lane+'"]').classList.add('held');
  if(already)return;pressedLane=lane;
@@ -162,13 +141,11 @@ async function resume(){
 async function restart(){await unlock();await startStage(run.stage||1);}
 function complete(){openStory(run.stage+1);}
 function renderStory(){
- const page=storyPages[story.next][story.page],last=story.page===storyPages[story.next].length-1;
- show(page.title,page.narration,last?(story.next===2?'Follow the Stranger':'Face the Reflection'):'Continue',()=>last?startStage(story.next):(story.page++,renderStory()),'Chapter '+story.next+' / '+(story.page+1)+' of 2');
- $('story-speaker').textContent=page.speaker;$('story-line').textContent=page.line();
- $('objective').textContent=C.stages[story.next-1].objective;
+ const street=story.next===2;
+ show(street?'The streetlights go quiet.':'The bus never came.',street?'Were they ever singing? Start when you are ready.':'The Stranger is gone. Start when you are ready.','Start next stage',()=>startStage(story.next),'');
 }
 async function openStory(next){
- const token=++generation;stopSound(true);clearInputs();notes=[];story={next,page:0};sceneStage=next;
+ const token=++generation;stopSound(true);clearInputs();notes=[];story={next};sceneStage=next===2?1:3;
  setState('Story');$('stage-label').textContent='Between chapters · '+C.stages[next-1].name;renderStory();$('game').scrollIntoView({block:'start'});
  try{
   const config=C.stages[next-1],decoded=await load(config.file);
@@ -187,11 +164,11 @@ async function finish(){
  if(choice==='Lost Ending'){
   filter.frequency.setTargetAtTime(550,ctx.currentTime,.4);
   if(sourceGain){sourceGain.gain.cancelScheduledValues(ctx.currentTime);sourceGain.gain.setValueAtTime(.65,ctx.currentTime);sourceGain.gain.setValueAtTime(.65,ctx.currentTime+3);sourceGain.gain.linearRampToValueAtTime(0,ctx.currentTime+5);}
-  show('Was any of it real?','You open your bedroom door and step onto wet pavement. The same shop. The same lamps. 2:47 a.m. Your key is still warm in your hand.','Start Again',credits);
+  show('Was any of it real?','','Start Again',ready,'');
  }else{
   stopSound(true);filter.frequency.value=20000;
   tone(0,ctx.currentTime,'pulse',1.5);
-  show('I made it home.','The last note fades. You lower your headphones. For the first time, your reflection waits for you. Pale light crosses the floor. The clock reads 2:48. Outside, a bus passes without stopping.','Play Again',credits);
+  show('I made it home.','','Play Again',ready,'');
   const token=++generation;
   try{const decoded=await load('faded-dream.mp3');if(token!==generation || !['Clear Ending','Paused'].includes(state))return;
    buffer=decoded;bufferFile='faded-dream.mp3';music(buffer,0,ctx.currentTime+.15,Math.min(45,buffer.duration),true);
@@ -201,9 +178,10 @@ async function finish(){
 
 function credits(){++generation;stopSound(true);setState('Credits');show('The walk can begin again.','Music and original art credits below.','Play Again',ready);$('ending-credits').hidden=false;$('ending-credits').innerHTML=document.querySelector('#music-credits')?.innerHTML||'';}
 function ready(){
- ++generation;stopSound(true);clearInputs();run=R.fresh();notes=[];story=null;sceneStage=1;storyLine=-1;epoch=0;resetVisuals();$('player-name').value='Walker';setState('Ready');
- $('stage-label').textContent='2:47 A.M. · Two blocks from home';$('objective').textContent='Get home before the street stops making sense.';
- show('You know the way home.','You have walked this street a hundred times. Tonight, the same shop keeps appearing ahead of you. Keep the music in your headphones going. Match every arrow to steady your steps and reach the bus stop.','Start the walk',async()=>{try{await unlock();await startStage(1);}catch(e){setState('Error');loadAction=ready;show('Audio could not start',e.message,'Back to title',ready);}},'A familiar route. An unfamiliar night.');
+ ++generation;stopSound(true);clearInputs();run=R.fresh();notes=[];story=null;sceneStage=1;epoch=0;resetVisuals();$('player-name').value='Walker';setState('Ready');
+ $('stage-label').textContent='2:47 A.M. · A ten-minute walk home';$('objective').textContent='Get home before the street stops making sense.';
+ show('2:47 a.m.','A ten-minute walk home. Keep the beat.','Start',async()=>{try{await unlock();await startStage(1);}catch(e){setState('Error');loadAction=ready;show('Audio could not start',e.message,'Back to title',ready);}},'');
+
 }
 function tick(){
  const t=now();
@@ -223,13 +201,13 @@ function tick(){
   }
   if(state==='Playing'&&t>=config.end-config.start){if(run.stage===3)finish();else complete();}
  }
- if(state==='Stage Failed'&&ctx.currentTime>=failAt)startStage(run.stage);
+
  if(state==='Lost Ending'){
   const age=ctx.currentTime-endingStart;
   if(age<5){const b=Math.floor(age*115/60);if(b!==lostToneBeat){lostToneBeat=b;tone(b%4,ctx.currentTime,'call',.2);}}
-  if(age>=5&&!endingStreet){endingStreet=true;stopSound(true);announce('The blurred street returns. Start Again leads to the credits.');}
+  if(age>=5&&!endingStreet){endingStreet=true;stopSound(true);announce('The blurred street returns. Choose Start Again when ready.');}
  }
- storyCaption(t);draw(t);requestAnimationFrame(tick);
+ draw(t);requestAnimationFrame(tick);
 }
 function arrow(x,y,lane,fill=true,size=19){
  g.save();g.translate(x,y);g.rotate(angles[lane]);g.beginPath();
@@ -250,7 +228,7 @@ function scenery(t){
  const clear=visual==='Clear Ending',lost=visual==='Lost Ending';
  const key=clear?'clear':endingStreet?'street':sceneStage===2?'stop':sceneStage===3?'room':'street';
  const im=sceneImages[key],cinematic=['Ready','Story','Clear Ending','Credits'].includes(visual);
- const loss=cinematic?0:lost?1:(1-run.clarity/100);
+ const loss=visual==='Ready'?.65:cinematic?0:lost?1:(1-run.clarity/100);
  g.save();g.fillStyle='#0E1020';g.fillRect(0,0,960,540);
  const movement=reduced.checked||cinematic?0:Math.sin(t*.7)*loss*3;
  g.translate(movement,0);
@@ -261,6 +239,22 @@ function scenery(t){
  g.fillStyle='rgba(64,30,106,'+(loss*.18)+')';g.fillRect(-8,0,976,540);
  if(!reduced.checked&&state==='Stage Failed'){g.fillStyle='rgba(14,16,32,.6)';g.fillRect(-8,0,976,540);}
  g.restore();
+ // Scene cues never move, hide or alter the independent arrow layer.
+ if(state==='Playing'&&im.complete&&im.naturalWidth){
+  if(sceneStage===1){
+   const pulse=reduced.checked?0:.035*(1+Math.cos(t*bpm()/60*Math.PI*2));
+   [[378,111],[475,200],[521,244]].forEach(([x,y],i)=>{
+    if(run.hits<(i+1)*3)return;
+    g.save();g.fillStyle='rgba(255,181,96,'+(.035+pulse)+')';
+    g.beginPath();g.ellipse(x,y+35,24,42,0,0,Math.PI*2);g.fill();g.restore();
+   });
+  }
+  if(sceneStage===2){
+   const recent=Math.max(...laneFlash)>ctx.currentTime;
+   g.save();g.beginPath();g.ellipse(161,315,38,43,0,0,Math.PI*2);g.clip();
+   g.filter='blur('+(recent?2:7)+'px)';g.drawImage(im,-8,-4,976,549);g.restore();
+  }
+ }
  if(lost){const age=ctx.currentTime-endingStart;const fade=age<5?Math.max(0,age-4):Math.max(0,6-age);g.fillStyle='rgba(14,16,32,'+fade+')';g.fillRect(0,0,960,540);}
 }
 
@@ -275,7 +269,19 @@ function draw(t){
   for(let lane=0;lane<4;lane++){
    const x=start+lane*60;g.strokeStyle='#353247';g.setLineDash([3,9]);g.beginPath();g.moveTo(x,100);g.lineTo(x,260);g.stroke();g.setLineDash([]);
    arrow(x,82,lane,false);
-   if(ctx && ((side&&laneFlash[lane]>ctx.currentTime)||(!side&&notes.some(n=>n.side==='caller'&&n.lane===lane&&Math.abs(R.seconds(n.beat,bpm())-t)<.16)))){g.strokeStyle=colors[lane];g.lineWidth=3;g.strokeRect(x-24,58,48,48);}
+   if(ctx && side && laneFlash[lane]>ctx.currentTime){
+    const progress=1-(laneFlash[lane]-ctx.currentTime)/.32;
+    g.save();g.globalAlpha=1-progress;
+    g.shadowColor=colors[lane];g.shadowBlur=reduced.checked?0:16*(1-progress);
+    arrow(x,82,lane,true,reduced.checked?21:21+4*Math.sin(progress*Math.PI));
+    if(!reduced.checked){
+     // Arrow-shaped echoes and directional sparks expand from the target.
+     g.globalAlpha=(1-progress)*.65;arrow(x,82,lane,false,23+progress*20);
+     g.translate(x,82);g.rotate(angles[lane]);g.strokeStyle=colors[lane];g.lineWidth=2;
+     for(const sign of [-1,1]){g.beginPath();g.moveTo(sign*(22+progress*15),-8-progress*10);g.lineTo(sign*(26+progress*22),-17-progress*14);g.stroke();}
+    }
+    g.restore();
+   }else if(ctx&&!side&&notes.some(n=>n.side==='caller'&&n.lane===lane&&Math.abs(R.seconds(n.beat,bpm())-t)<.16)){g.save();g.globalAlpha=.65;arrow(x,82,lane,true,21);g.restore();}
   }
  }
  if(playing){
@@ -298,7 +304,7 @@ function draw(t){
 }
 $('main-action').addEventListener('click',()=>mainAction?.());
 $('back-action').addEventListener('click',ready);
-$('skip-story').addEventListener('click',()=>{if(story)startStage(story.next);});
+
 $('pause').addEventListener('click',()=>state==='Paused'?resume():pause());
 $('restart').addEventListener('click',restart);
 $('offset').addEventListener('input',()=>{$('offset-value').textContent=$('offset').value+' ms';});

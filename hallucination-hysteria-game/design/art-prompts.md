@@ -13,3 +13,11 @@ Use case: stylized-concept. Asset: full-screen background for a grounded psychol
 
 ## Clear ending variant
 The room scene was edited with the image-generation tool to show morning light, a matching reflection and headphones held in the Walker’s hand. Saved as art/clear.png. The other three full prompts above generated street.png, bus-stop.png and room.png.
+
+## Restrained realism revision — November 6, 2026
+Edited all four existing scenes with OpenAI image generation. Kept wide composition, believable proportions, dark hoodie and orange headphones. Requested natural restrained lighting, matte surfaces, simpler forms, fewer decorative objects, reduced glossy reflections and microtexture.
+Street: simplify architecture; remove doorway figure; shop sign OPEИ with backwards N.
+Shelter: keep anonymous pointing Stranger in shadow; simplify glass and eliminate duplicate reflections.
+Room: remove keys, plants, postcards and ornate rug; leave project papers; headphones on ears; subtle mismatched reflection.
+Clear: same ordinary room in pale morning; headphones held at side; ordinary reflection.
+All four outputs inspected and copied into art/. These remain generated illustrations, not photography.

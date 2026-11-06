@@ -1,10 +1,8 @@
-# Story screens
-Ready: repeating shop, goal of reaching home; name defaults to Walker.
-Street: sharp arrows over a realistic wet street, short dialogue captions, objective and progress.
-Stranger transition: missed bus and frozen clock; Stranger recognizes Walker, answers with directions and a warning about other footsteps.
-Stranger gameplay: dialogue establishes the visible home window.
-Room transition: familiar key and keys' usual place contrast with reflection moving first; Reflection speaks in full sentences.
-Room gameplay: finish the song, then remove headphones.
-Clear: morning bedroom, matching reflection, 2:48 and passing bus.
-Lost: bedroom door leads to the same street and 2:47; key remains in hand.
-The mystery is unresolved; location, immediate goal and consequence are explicit.
+# Current screen copy
+Title: 2:47 a.m. A ten-minute walk home. Keep the beat.
+After Street: The streetlights go quiet. Were they ever singing? Start when you are ready.
+After Stranger: The bus never came. The Stranger is gone. Start when you are ready.
+Clear: I made it home.
+Lost: Was any of it real?
+
+The complete story is in brief.md. Do not add gameplay dialogue, house keys, certain locations or a confirmed explanation for the hallucinations.
