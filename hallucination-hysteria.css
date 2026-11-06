@@ -21,3 +21,6 @@
 .section-nav{top:calc(var(--portfolio-height,70px) + 20px)}.proposal-section{scroll-margin-top:calc(var(--portfolio-height,70px) + 24px)}
 @media(max-width:900px){.section-nav{top:var(--portfolio-height,70px)}.proposal-section{scroll-margin-top:calc(var(--portfolio-height,70px) + var(--section-nav-height,75px) + 20px)}}
 @media(max-width:600px){.event-list .data-card>dl{grid-template-columns:1fr;gap:18px}.creator-cards p{font-size:16px}.stage-plan dd{font-size:16px}}
+
+/* Keep slider labels outside the flexible track on narrow screens. */
+.range-row{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content}.range-row span{white-space:nowrap}.range-row input{min-width:0;margin:0}
