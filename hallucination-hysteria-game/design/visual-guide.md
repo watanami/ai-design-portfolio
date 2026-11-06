@@ -1,7 +1,6 @@
-# Visual guide
+# Revised visual guide
+Four generated cinematic raster scenes replace the schematic scenery: street, shelter, bedroom and morning bedroom. Charcoal clothing, orange headphones, amber light and violet shadows connect the scenes. See art-prompts.md for provenance.
 
-Adapt original storyboard-03.svg buildings, angular coats, headphones, lamps, bus shelter and mirror. No new FNF art.16:9 canvas; caller upper left, player upper right, characters below, clarity eye at bottom. Dark lane panels keep arrows readable. External HUD/pads stay readable on phones.
-
-Palette: Night #0E1020; Streetlight #FF9A3C; Ink #F3E8D2; Hallucination #7A4CFF; Ghost #2EC4B6; Deep Lost #2A1640. Solid arrows: light violet, teal, cream, orange. Ghosts: hollow dashed outlines; shape identifies them. Holds: visible tails. Space Grotesk with system fallback.
-
-Blur/tint/dimming/warp apply only to scenery/characters. Restore canvas context before lanes, targets, notes, text, meter. Reduced motion removes oscillation; no strobing. Hits glow targets/lamps. Sound starts with Start: Shane Ivers recordings, procedural ascending direction tones, miss thud, sour ghost tone, pulse and room ambience. Direction always visible.
+Caller remains left; player arrows remain right, sharp and independent of scenery blur/movement. Purple/teal/cream/orange distinguish lanes; arrow shape also communicates direction.
+Desktop dialogue overlays scenery. At widths ≤760px, dialogue follows the image so text remains readable and no card is cropped.
+Reduced motion disables scenery movement. Story screens wait for input, with a Skip to song option. Generated art is fictional, not a photograph of real people.

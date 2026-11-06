@@ -1,16 +1,10 @@
-# Screens
-
-| State | Information | Main button | Next behavior |
-|---|---|---|---|
-| Ready | Sound needed, keys/pads, solid/ghost rule, name | Start | Opening |
-| Opening | Four hits to find beat | Pause | Freeze or finish four hits |
-| Playing | Stage, clarity, judgment, progress | Pause | Freeze |
-| Paused | Reason, re-grip tails | Resume | Same state/beat |
-| Stage Complete | Result and narrative | Start Next Stage | Load next at50 |
-| Stage Failed | Clarity ran out | Restart Stage | Same stage; auto after1.2s |
-| Clear Ending | Morning, I made it home | Play Again | Credits; arrow also works |
-| Lost Ending | Warped room then street, Was any of it real? | Start Again | Credits |
-| Credits | Four exact credits/license | Play Again | Ready, full reset |
-| Loading/error | Track status | Retry / Back to title | Retry load / Ready |
-
-Focus moves to new main actions. Transition messages announced, not per-frame scores. Project explanation remains readable without JS; play requires JS.
+# Story screens
+Ready: repeating shop, goal of reaching home; name defaults to Walker.
+Street: sharp arrows over a realistic wet street, short dialogue captions, objective and progress.
+Stranger transition: missed bus and frozen clock; Stranger recognizes Walker, answers with directions and a warning about other footsteps.
+Stranger gameplay: dialogue establishes the visible home window.
+Room transition: familiar key and keys' usual place contrast with reflection moving first; Reflection speaks in full sentences.
+Room gameplay: finish the song, then remove headphones.
+Clear: morning bedroom, matching reflection, 2:48 and passing bus.
+Lost: bedroom door leads to the same street and 2:47; key remains in hand.
+The mystery is unresolved; location, immediate goal and consequence are explicit.

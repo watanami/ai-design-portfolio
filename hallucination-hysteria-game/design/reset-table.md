@@ -1,15 +1,10 @@
-# Reset table
+# Reset rules
+| Action | Reset | Preserve |
+|---|---|---|
+| Start / next chapter / restart | Notes, clarity 50, combo, judgments, voices | Volume, offset, reduced-motion setting, chosen name |
+| Pause | Held inputs; 300ms re-grip grace on resume | Audio source and frozen clock, story page |
+| Story | Old voices, chart and recording; load next chapter ambience | Name, settings |
+| Credits | Recording and voices | Settings |
+| Play Again | Stage 0, empty chart, clarity 50, Walker name | Settings |
 
-| Item | Next stage | Stage restart | Play Again |
-|---|---|---|---|
-| Stage | +1 on button | Same | Ready/0 |
-| Clarity | 50 | 50 | 50 |
-| Judgments/combo/counts | Reset | Reset | Reset |
-| Heads/tails/ghosts | Fresh chart | Fresh chart | Empty |
-| Held keys/touch | Clear | Clear | Clear |
-| Clock/source | New count-in/excerpt | From excerpt start | Stop all |
-| Recording buffer | Release old, fetch next | Reuse same | Release |
-| Opening hits | No score carry | Reset for opening | 0 |
-| Player name | Carry | Carry | Micah |
-| Offset/volume/reduced motion | Carry | Carry | Carry preferences |
-| Pending loads/timers/endings | Invalidate | Invalidate | Invalidate |
+One decoded music recording is retained. Story ambience is stopped before chapter playback; the same buffer is reused.
