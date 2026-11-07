@@ -8,12 +8,12 @@ const stages=[
 function chart(stage){
 const notes=[],s=stages[stage-1],last=stage===3?123:94;
 for(let bar=0;bar<s.bars;bar++){
-let offsets=stage===1?(bar<4?[0,1,2,3]:bar<10?[0,1,2,3,3.5]:[0,1,1.5,2,3,3.5]):stage===2?[0,.5,1,2,2.5,3,3.5]:bar<4?[0,1,2,3]:bar%2===0?[0,1,2,3]:[0,.5,1,2,2.5,3];
+let offsets=stage===1?(bar<4?[0,1,2,3]:bar<10?[0,1,2,3,3.5]:[0,1,1.5,2,3,3.5]):stage===2?(bar%2===0?[0,1,2,3]:[0,1,2,3,3.5]):bar<4?[0,1,2,3]:bar%2===0?[0,1,2,3]:[0,.5,1,2,2.5,3];
 if(bar%4===3)offsets=offsets.filter(o=>o<3);
 offsets.forEach((off,j)=>{
  const beat=bar*4+off;if(beat<1||beat>last)return;
  let lane=(bar*3+j*(stage===1?1:3)+Math.floor(bar/3))%4;
- const hold=stage>1&&bar%(stage===3?4:2)===0&&off===1?(stage===3?1:bar%4===0?2:1):0;
+ const hold=stage>1&&bar%4===0&&off===1?(stage===3?1:bar%4===0?2:1):0;
  if(beat+hold>last)return;
  for(let attempt=0;attempt<4;attempt++){
  if(!notes.some(n=>n.side==='player'&&n.lane===lane&&beat<=n.beat+(n.hold||0)+.18))break;

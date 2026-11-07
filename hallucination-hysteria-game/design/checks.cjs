@@ -12,7 +12,7 @@ test('Hit windows, harmless early presses and delayed event timestamps',()=>{
 });
 test('Every chart begins at beat1, has no decoys and no same-lane hold conflicts',()=>{
  for(let stage=1;stage<=3;stage++){
- const n=C.chart(stage).filter(n=>n.side==='player');assert.equal(n[0].beat,1);assert.ok(n.length>110);assert.ok(n.every(n=>!('ghost' in n)));
+ const n=C.chart(stage).filter(n=>n.side==='player');assert.equal(n[0].beat,1);assert.ok(n.length>90);assert.ok(n.every(n=>!('ghost' in n)));
  for(const a of n)for(const b of n)if(b.beat>a.beat&&a.lane===b.lane)assert.ok(b.beat>a.beat+a.hold);
  console.log('Stage '+stage+': '+n.length+' player notes');
  }
@@ -30,7 +30,7 @@ test('Hold release tolerance and ending boundary',()=>{
 const elements=new Map(),events={},windowEvents={},sources=[],oscillators=[];
 function el(id){if(!elements.has(id))elements.set(id,{id,value:id==='volume'?'55':id==='offset'?'0':id==='player-name'?'Walker':'',checked:false,hidden:false,disabled:false,textContent:'',innerHTML:'credits',dataset:{},style:{},classList:{add(){},remove(){},toggle(){}},focus(){},scrollIntoView(){},addEventListener(){}});return elements.get(id);}
 const painter=new Proxy({}, {get:(o,k)=>o[k]||(()=>{}),set:(o,k,v)=>(o[k]=v,true)});
-el('stage').getContext=()=>painter;const pads=[0,1,2,3].map(i=>({...el('pad'+i),dataset:{lane:String(i)}}));
+painter.createLinearGradient=()=>({addColorStop(){}});el('stage').getContext=()=>painter;const pads=[0,1,2,3].map(i=>({...el('pad'+i),dataset:{lane:String(i)}}));
 const param=()=>({value:0,setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){},setTargetAtTime(){},cancelScheduledValues(){}});
 function audioNode(){return {gain:param(),frequency:param(),connect(){},disconnect(){},start(...a){this.started=a;},stop(){this.stopped=true;}};}
 class Audio{
@@ -53,15 +53,16 @@ let app=fs.readFileSync(root+'/app.js','utf8').replace('ready();requestAnimation
  time(t){ctx.currentTime=epoch+latency()+Number($('offset').value)/1000+t},now};ready();`);
 vm.runInContext(app,context);const a=context.check;
 (async()=>{
- assert.equal(a.ctx,null);assert.equal(el('message-title').textContent+' '+el('message-text').textContent,'2:47 a.m. A ten-minute walk home. Keep the beat.');await a.action();
- test('Start enters Stage1 directly, at50, default Walker',()=>{assert.equal(a.state,'Playing');assert.equal(a.run.stage,1);assert.equal(a.run.clarity,50);assert.equal(el('player-name').value,'Walker');});
+ assert.equal(a.ctx,null);assert.equal(el('message-title').textContent+' '+el('message-text').textContent,'2:47 a.m. A ten-minute walk home. Keep the beat.');await a.action();assert.equal(a.state,'Story');for(let i=0;i<3;i++)await a.action();
+ assert.equal(el('message-title').textContent,'Your arrows are on the right.');assert.equal(a.state,'Story');await a.action();assert.equal(a.epoch-a.ctx.currentTime,4);
+ test('Instructions wait for readiness, then four-second countdown, default Walker',()=>{assert.equal(a.state,'Playing');assert.equal(a.run.stage,1);assert.equal(a.run.clarity,50);assert.equal(el('player-name').value,'Walker');});
  await a.startStage(1);
  const tail=a.notes.filter(n=>n.side==='player'&&!n.ghost).slice(-2);
  a.notes.forEach(n=>{if(!tail.includes(n))n.done=true;});a.run.clarity=58;
  for(const n of tail){a.time(n.beat*60/91);a.press(n.lane,'test');a.release('test');}
  a.time(C.stages[0].end-C.stages[0].start+.01);a.tick();
  test('58 + two Perfect =64; story waits for explicit next',()=>{assert.equal(a.run.clarity,64);assert.equal(a.state,'Story');a.ctx.currentTime+=100;a.tick();assert.equal(a.run.stage,1);assert.equal(a.state,'Story');});
- assert.equal(el('message-title').textContent+' '+el('message-text').textContent,'The streetlights go quiet. Were they ever singing? Start when you are ready.');await a.action();assert.equal(a.run.stage,2);assert.equal(a.run.clarity,50);
+ assert.equal(el('message-title').textContent,'Did you pass this stop already?');for(let i=0;i<3;i++)await a.action();assert.equal(a.run.stage,2);assert.equal(a.run.clarity,50);
  a.time(5);const before=a.now(),audioSource=sources.at(-1);a.pause();
  test('Pause suspends the same audio source/clock',()=>{assert.equal(a.ctx.state,'suspended');assert.equal(a.state,'Paused');assert.equal(a.now(),before);assert.ok(!audioSource.stopped);});
  await a.resume();assert.equal(a.now(),before);
@@ -82,11 +83,11 @@ vm.runInContext(app,context);const a=context.check;
   assert.equal(a.state,stage===3?'Clear Ending':'Story');
  }
  test('Full synthetic runs: all three real charts can complete, holds included',()=>assert.equal(a.run.misses,0));
- a.action();
+ for(let i=0;i<3;i++)a.action();
  test('Clear -> Play Again resets to Ready and releases recording',()=>{assert.equal(a.state,'Ready');assert.equal(a.run.stage,0);assert.equal(a.run.clarity,50);assert.equal(a.buffer,null);assert.equal(a.notes.length,0);});
- await a.openStory(2);assert.equal(a.state,'Story');a.pause();await a.resume();assert.equal(a.state,'Story');assert.equal(el('message-title').textContent,'The streetlights go quiet.');a.credits();a.ready();
+ await a.openStory(2);assert.equal(a.state,'Story');a.pause();await a.resume();assert.equal(a.state,'Story');assert.equal(el('message-title').textContent,'Did you pass this stop already?');a.credits();a.ready();
  test('Story pause/resume and cancellation stop looping music',()=>assert.ok(sources.every(s=>s.stopped)));
- await a.startStage(3);a.run.clarity=50;await a.finish();assert.equal(a.state,'Lost Ending');a.ctx.currentTime+=5.1;a.tick();a.action();
+ await a.startStage(3);a.run.clarity=50;await a.finish();assert.equal(a.state,'Lost Ending');a.ctx.currentTime+=5.1;a.tick();for(let i=0;i<3;i++)a.action();
  test('Lost at50 -> street -> Start Again -> Ready works',()=>{assert.equal(a.state,'Ready');assert.equal(a.buffer,null);});
  console.log(passed+' checks passed. Audio is mocked: this proves logic/scheduling, not audibility or physical latency.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

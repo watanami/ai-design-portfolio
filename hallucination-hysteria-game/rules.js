@@ -6,7 +6,7 @@
     delta: {Perfect: 3, Good: 2, Miss: -6, Hold: 2},
     clamp: value => Math.max(0, Math.min(100, value)),
     judge(error) { const a = Math.abs(error); return a <= .070 + 1e-9 ? 'Perfect' : a <= .150 + 1e-9 ? 'Good' : null; },
-    points: (result, stage=0) => result==='Miss'&&stage===3 ? -4 : (R.delta[result]||0),
+    points: (result, stage=0) => result==='Miss'&&stage>=2 ? -4 : (R.delta[result]||0),
     change(clarity, result, stage=0) { return R.clamp(clarity + R.points(result,stage)); },
     ending: clarity => clarity > 50 ? 'Clear Ending' : 'Lost Ending',
     seconds: (beat, bpm) => beat * 60 / bpm,

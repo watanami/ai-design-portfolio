@@ -14,7 +14,7 @@ Implementation: each recording plays at its original constant speed. Distortion 
 Whether what they see is really happening, whether it's the lack of sleep, and whether they're doing anything right, tonight or in the work they just left. The game never answers. Keep the cause of the hallucinations a mystery: the tiredness is a fact, but nothing confirms it's the reason. The mood is uneasy but never helpless: the world is unreliable, but the beat is always there to hold on to.
 
 ## How it unfolds
-- Opening (Arrive): the Walker comes to mid-step on a dim street, unsure how long they've been walking. Everything is blurred except the beat. Pressing on the beat brings the street back into focus, one streetlight at a time. Start enters the first song directly; this is its opening, not a separate tutorial.
+- Opening (Arrive): the Walker suddenly notices the dim street around them, unsure how long they've been walking. Everything is blurred except the beat. Pressing on the beat brings the street back into focus, one streetlight at a time. Start enters the first song directly; this is its opening, not a separate tutorial.
 - Stage 1, The street (Wonder): the streetlights flicker in time and seem to sing patterns at the Walker. Copying them keeps the street steady. Small things are off: the OPEN sign's N is backwards, and the clock reads 2:47 every time you look.
 - Stage 2, The Stranger (Doubt): someone at the bus stop says the Walker's name in beeps. The Walker can't tell whether they know this person, or whether anyone is there at all. Answering on the beat brings the face into focus for a moment, never long enough to recognize. The bus never comes; the Stranger points up the street toward home. Who they are stays a mystery.
 - Stage 3, Your room (Change): home at last, but the room won't settle. The Walker's reflection sings first, like the doubts they've carried all night, and the Walker has to keep their own rhythm against it.
@@ -24,7 +24,7 @@ Whether what they see is really happening, whether it's the lack of sleep, and w
 ## Exact narrative words on screen
 Only title, transitions and endings carry narrative text; gameplay has no dialogue captions.
 - Title: "2:47 a.m. A ten-minute walk home. Keep the beat."
-- After Stage 1: "The streetlights go quiet. Were they ever singing? Start when you are ready."
+- After Stage 1: "The streetlights go quiet. For a moment, the streetlights seemed to sing along with your music. Now you hear only your headphones. Start when you are ready."
 - After Stage 2: "The bus never came. The Stranger is gone. Start when you are ready."
 - Clear: "I made it home."
 - Lost: "Was any of it real?"
@@ -36,3 +36,6 @@ Every real arrow must be hit; no decoys or sound-only directions. Stage 3 altern
 Arrow-shaped pulses, expanding outlines and directional sparks replace square hit outlines. Reduced motion uses a static highlight.
 Retain realistic scenes but simplify distracting detail and glossy lighting. Generated imagery stays credited as such.
 Keep all work local on hallucination-hysteria-game until Micah explicitly requests publication.
+\n## Latest playtest revision\nThe request for minimal text is superseded by three readable screens before each chapter and three at each ending. Each waits for Continue. Stage2 uses mostly quarters with occasional eighths; Stage3 retains142 notes and115BPM. Both later stages use a−4 miss penalty. Notes now have lit facets, dark borders and a colored glow.\n
+## Current narrative priority
+The Walker is trying to stay aware of his surroundings while struggling with gaps in memory and familiar things he cannot recall. This supersedes earlier dialogue; screens.md contains the current exact text. Sleep deprivation is part of the fictional situation, not a confirmed explanation of every perception.
