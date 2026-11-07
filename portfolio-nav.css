@@ -1,0 +1,8 @@
+/* One shared portfolio header on every project page. */
+.portfolio-header{background:#faf8ef!important;padding:0!important}
+nav.portfolio-nav{box-sizing:border-box;width:100%;max-width:none;margin:0;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px 18px;padding:16px max(24px,calc((100% - 1200px)/2));background:#faf8ef;color:#163d30;font:500 15px/1.4 'Barlow',system-ui,sans-serif;letter-spacing:0}
+nav.portfolio-nav a{display:block;min-height:40px;padding:10px 8px;color:#163d30;text-decoration:none;border:0;border-radius:3px;font:inherit}
+nav.portfolio-nav a:hover{text-decoration:underline;text-underline-offset:4px}
+nav.portfolio-nav a[aria-current="page"]{background:#ffe83d;font-weight:600}
+nav.portfolio-nav a:focus-visible{outline:3px solid #165743;outline-offset:2px}
+@media(max-width:760px){nav.portfolio-nav{justify-content:flex-start;gap:4px 8px;padding:12px;font-size:14px}}
