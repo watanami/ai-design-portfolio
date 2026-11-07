@@ -160,7 +160,7 @@ async function openStory(next){
   if(token!==generation)return;
   buffer=decoded;bufferFile=config.file;filter.frequency.value=2200;
   source=ctx.createBufferSource();source.buffer=buffer;source.loop=true;source.loopStart=config.start;source.loopEnd=config.start+8;
-  sourceGain=ctx.createGain();sourceGain.gain.setValueAtTime(0,ctx.currentTime);sourceGain.gain.linearRampToValueAtTime(.08,ctx.currentTime+1);
+  sourceGain=ctx.createGain();sourceGain.gain.setValueAtTime(0,ctx.currentTime);sourceGain.gain.linearRampToValueAtTime(.16,ctx.currentTime+1);
   source.connect(sourceGain);sourceGain.connect(filter);source.start(ctx.currentTime,config.start);
  }catch{if(token===generation)announce('The story remains available. Music will retry when you start the next chapter.');}
  if(document.hidden && state==='Story')pause('The tab was hidden.');
@@ -287,6 +287,13 @@ function scenery(t){
 }
 
 function draw(t){
+ // Keep the logical stage coordinates while rendering at display pixel density.
+ const displayWidth=canvas.getBoundingClientRect?canvas.getBoundingClientRect().width:960;
+ const scale=Math.max(1,Math.min(3,(displayWidth||960)/960*(window.devicePixelRatio||1)));
+ const width=Math.round(960*scale),height=Math.round(540*scale);
+ if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
+ g.setTransform(width/960,0,0,height/540,0,0);
+ g.imageSmoothingEnabled=true;g.imageSmoothingQuality="high";
  g.clearRect(0,0,960,540);scenery(t);
  // Everything below is outside the scenery filter and transform.
  const playing=['Playing','Stage Failed'].includes(state)||state==='Paused'&&prior==='Playing';
