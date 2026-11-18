@@ -26,3 +26,93 @@
 .message-actions{flex-direction:column;align-items:stretch}.message-actions #main-action{min-width:0}
 .dialogue-bar{display:block;padding:12px}.dialogue-bar p{margin-top:4px;font-size:13px}.objective{padding:10px 12px}
 }
+
+/* Final-week interface and process notes. */
+.game-top{font-family:'Space Grotesk',sans-serif;gap:12px;flex-wrap:wrap}
+#stage-label{padding:7px 12px;border:1px solid #a76b45;border-radius:9px;background:#2c1f29;color:#ffdcaa;font-weight:700;font-size:16px}
+#skip-story{background:transparent;color:#e6d9ee;border-color:#87718e}
+.process-note{grid-column:1/-1}.process-note li{margin-bottom:12px}.week-two{grid-column:1/-1;padding:22px;border:1px solid #67506c}.week-two summary{cursor:pointer;font-size:20px;font-weight:700}.week-two section{margin-top:28px}
+@media(max-width:600px){#stage-label{font-size:14px}.game-top{align-items:center}.message-actions{display:flex;flex-wrap:wrap;gap:10px}.message-actions button{min-height:48px}.message-actions label{width:100%}}
+
+.lane-tags{display:none}.near-feedback{display:none}
+@media(max-width:600px){
+.lane-tags:not([hidden]){position:relative;order:-2;width:100%;display:grid;grid-template-columns:46% 54%;gap:0;pointer-events:none;padding:8px 6px;background:#151322}
+.lane-tags span{font-size:12px;font-weight:700;line-height:1.2;color:#d1c9e2;background:#171627e8;border:1px solid #686078;border-radius:5px;padding:4px;justify-self:start;max-width:100%}
+.lane-tags .you-tag{font-size:14px;color:#ffd69d;border-color:#b77d4b;padding:7px 9px}.lane-tags small{display:block;margin-top:5px;font-size:11px;font-weight:500;line-height:1.4}
+.near-feedback:not([hidden]):not(:empty){display:block;position:absolute;z-index:3;left:47%;top:86px;right:8px;padding:4px;background:#171024e8;border:1px solid #b294b4;border-radius:5px;color:#ffdfb5;font-size:12px;font-weight:700;line-height:1.25;pointer-events:none}
+}
+
+.chapter-entry{animation:chapter-settle 1s ease-out both}@keyframes chapter-settle{from{transform:translateY(12px);box-shadow:0 0 24px #ff9a3c66}to{transform:none;box-shadow:none}}@media(prefers-reduced-motion:reduce){.chapter-entry{animation:none}}
+
+/* Feedback stays above the canvas, visible without scrolling past the lanes. */
+.near-feedback:not([hidden]){display:block;position:relative;inset:auto;min-height:46px;padding:10px 16px;background:#211a2e;color:#ffe0b5;border-top:1px solid #926342;font-size:15px;font-weight:700;line-height:1.4;text-align:center;pointer-events:none}
+.stage-wrap{display:flex;flex-direction:column}.stage-wrap canvas{order:0}.stage-wrap .near-feedback{order:-1;flex-shrink:0}.stage-wrap .message{order:2}
+#difficulty-label{display:flex;flex-direction:column;gap:6px}#difficulty{background:#171627;color:#f3e8d2;border:1px solid #95849f;border-radius:6px;min-height:44px;padding:8px;font:inherit}
+@media(max-width:600px){.near-feedback:not([hidden]):not(:empty){position:relative;inset:auto;min-height:46px;font-size:14px;border-radius:0;padding:10px 12px}.near-feedback:not([hidden]):empty{display:block}#difficulty-label{width:100%}}
+
+/* Text equivalent for the result drawn in the reserved pocket below your lanes. */
+.stage-wrap .near-feedback:not([hidden]){position:absolute;order:0;width:1px;height:1px;min-height:0;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+.ending-reminder{margin:0;padding:10px 20px;border-top:1px solid #67506c;background:#211a2e;color:#ffe0ae;text-align:center;font-size:14px;line-height:1.5}.cinematic .ending-reminder{display:none}
+
+.ending-reminder{padding:14px 20px;background:#ffe0a0;color:#201626;border-top:2px solid #fff2d4;border-bottom:2px solid #b78354;font-size:18px;font-weight:700;line-height:1.5}
+
+#start-stage-label{display:flex;flex-direction:column;gap:6px}#start-stage{background:#171627;color:#f3e8d2;border:1px solid #95849f;border-radius:6px;min-height:44px;padding:8px;font:inherit;max-width:100%}
+
+/* A consistent form grid keeps title controls aligned with the story card. */
+.title-screen .message-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 16px;align-items:end;margin-top:22px}
+.title-screen .message-actions #name-label,.title-screen .message-actions #start-stage-label{grid-column:1/-1}
+.title-screen .message-actions label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;line-height:1.4;min-width:0;width:100%}
+.title-screen .message-actions input,.title-screen .message-actions select{width:100%;height:46px;min-height:46px;margin:0;padding:10px 12px;font-family:inherit;font-size:14px;font-weight:400;line-height:1.4;border-radius:6px}
+.title-screen .message-actions #main-action{min-width:0;width:100%;height:46px;padding:10px 16px;font-size:15px}
+.title-screen #difficulty-label{grid-row:3;grid-column:1}.title-screen #main-action{grid-row:3;grid-column:2}
+
+.title-screen .message-actions label{font-size:16px;gap:8px}.title-screen .message-actions input,.title-screen .message-actions select{font-size:18px;height:52px;min-height:52px}.title-screen .message-actions #main-action{font-size:19px;height:52px}.title-screen .stage-wrap .message p{font-size:18px;line-height:1.5}
+
+/* Reserve the reminder slot even when hidden: the playfield never shifts. */
+.game-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto;align-items:center;min-height:96px;gap:16px}
+.game-top .ending-reminder{display:block;margin:0;padding:8px 12px;background:#ffe0a0;color:#201626;border:1px solid #b78354;border-radius:6px;font-size:16px;line-height:1.4;text-align:center}
+.game-top .ending-reminder[hidden]{display:block!important;visibility:hidden}
+#stage-label{justify-self:start}#state-label{justify-self:end}
+@media(max-width:760px){.game-top{grid-template-columns:minmax(0,1fr) auto;gap:8px;min-height:126px}.game-top .ending-reminder{grid-row:2;grid-column:1/-1;min-height:62px;font-size:15px;display:flex;align-items:center;justify-content:center}.game-top .ending-reminder[hidden]{display:flex!important}#state-label{grid-row:1;grid-column:2}}
+
+.game-top .ending-reminder{background:#292033;color:#ffe0b5;border:1px solid #b78354;border-left:3px solid #ff9a3c}
+#game:not(.title-screen) .message-actions{display:flex;flex-direction:row;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:12px;text-align:left}
+#game:not(.title-screen) .message-actions button{font-size:17px;min-height:50px;padding:12px 20px}
+#game:not(.title-screen) .message-actions #skip-story{font-size:16px}
+
+/* Compact starting form; larger buttons remain limited to story cards. */
+.title-screen .message-actions label{font-size:14px;gap:7px}
+.title-screen .message-actions input,.title-screen .message-actions select{font-size:16px;font-weight:400;height:46px;min-height:46px;line-height:1.4}
+.title-screen .message-actions #main-action{font-size:17px;height:46px;min-height:46px}
+.title-screen .message-actions select{appearance:none;-webkit-appearance:none;padding:10px 44px 10px 14px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='10' viewBox='0 0 16 10'%3E%3Cpath d='M2 2l6 6 6-6' fill='none' stroke='%23f3e8d2' stroke-width='1.7'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:16px 10px}
+
+/* CSS chevron stays visible without an external or embedded image. */
+.title-screen .message-actions select{background-image:linear-gradient(45deg,transparent 50%,#f3e8d2 50%),linear-gradient(135deg,#f3e8d2 50%,transparent 50%);background-position:calc(100% - 21px) 50%,calc(100% - 14px) 50%;background-size:7px 7px,7px 7px;background-repeat:no-repeat}
+@media(forced-colors:active){.title-screen .message-actions select{appearance:auto;-webkit-appearance:auto;background-image:none}}
+
+.title-screen .select-shell{position:relative;display:block;width:100%;min-width:0}
+.title-screen .message-actions .select-shell select{background-image:none!important;padding-right:48px}
+.title-screen .select-chevron{position:absolute;right:15px;top:50%;transform:translateY(-60%);font-family:system-ui,sans-serif;font-size:28px;font-weight:700;line-height:1;color:#f3e8d2;pointer-events:none}
+.title-screen .message-actions input,.title-screen .message-actions select{font-size:17px}
+
+.title-screen .message-actions .select-shell select{border-radius:14px;height:48px;min-height:48px;padding:0 48px 0 14px;line-height:normal;vertical-align:middle}
+.title-screen .select-chevron{width:10px;height:10px;right:19px;top:50%;transform:translateY(-70%) rotate(45deg);border-right:2px solid #f3e8d2;border-bottom:2px solid #f3e8d2;font-size:0;line-height:0}
+.title-screen .message-actions #main-action{height:48px;min-height:48px}
+
+.revision-comparison{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:18px 0 28px}.revision-comparison article{padding:18px;border:1px solid #67506c;border-radius:10px;background:#211a2e}.revision-comparison h4{margin:0 0 12px;color:#ffe0b5;font-size:18px}.revision-comparison p{font-size:15px;line-height:1.6}.revision-comparison p:last-child{margin-bottom:0}@media(max-width:760px){.revision-comparison{grid-template-columns:1fr}}
+
+.process-evidence figure{margin:1.5rem 0}.process-evidence img{display:block;width:100%;height:auto;border:1px solid #80748e;border-radius:12px}.process-evidence figcaption{margin-top:.65rem;line-height:1.6}
+
+/* Paired evidence from the published draft and current local game. */
+.revision-pair{margin:2rem 0 2.75rem;padding-top:1.5rem;border-top:1px solid #51465f}
+.revision-pair h4{font-size:1.3rem;margin:0 0 .5rem;color:#ffe0b5}
+.revision-pair-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.25rem;margin-top:1rem}
+.process-evidence .revision-pair figure{margin:0;min-width:0}
+.comparison-label{display:inline-block;margin-bottom:.65rem;padding:.25rem .7rem;border:1px solid #80748e;border-radius:6px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:.85rem}
+.comparison-label.after{color:#b8f0db;border-color:#6caa96;background:#203b36}
+.revision-pair-grid a{display:block;border-radius:12px;background:#10101d}
+.revision-pair-grid a:focus-visible{outline:3px solid #ff9d42;outline-offset:4px}
+.process-evidence .revision-pair img{aspect-ratio:6/5;object-fit:contain;box-sizing:border-box}
+.process-evidence .revision-pair figcaption{font-size:.95rem}
+@media(max-width:700px){.revision-pair-grid{grid-template-columns:1fr;gap:1.5rem}.process-evidence .revision-pair img{aspect-ratio:auto}.revision-pair{margin-bottom:2rem}}
