@@ -2,7 +2,11 @@
 (() => {
 'use strict';
 const R=HHRules, C=HHCharts, $=id=>document.getElementById(id);
-const canvas=$('stage'), g=canvas.getContext('2d');
+const canvas=$('stage');let g=canvas.getContext('2d');
+const sceneLayer=document.createElement('canvas');sceneLayer.width=960;sceneLayer.height=540;
+const scenePen=sceneLayer.getContext('2d');let lastSceneFrame=-Infinity,lastSceneState='',viewWidth=960,lastLayout=-Infinity;
+
+function text(id,value){const el=$(id),next=String(value);if(el.textContent!==next)el.textContent=next;}
 const colors=['#B79AFF','#2EC4B6','#F3E8D2','#FF9A3C'], angles=[-Math.PI/2,Math.PI,0,Math.PI/2];
 const pitches=[220,277.18,329.63,440], keys={ArrowLeft:0,a:0,ArrowDown:1,s:1,ArrowUp:2,w:2,ArrowRight:3,d:3};
 let state='Ready', prior='Playing', run=R.fresh(), notes=[];
@@ -23,8 +27,14 @@ const now=()=>{
  return audible-epoch-Number($('offset').value)/1000;
 };
 const eventTime=stamp=>stamp===undefined?now():R.eventTime(now(),stamp,performance.now());
-const sceneImages={};
-for(const [key,file] of Object.entries({street:'street',stop:'bus-stop',room:'room',clear:'clear'})){const im=new Image();im.src='art/'+file+'.png';sceneImages[key]=im;}
+const sceneImages={}, sceneLoaded={};
+let sceneKey='',previousScene='',sceneChanged=0,fontReady=!document.fonts;
+if(document.fonts)document.fonts.ready.then(()=>{fontReady=true;});
+let feedback=Array.from({length:4},()=>({text:'',detail:'',until:0})),cueHints=0,cueUntil=0;
+const clock=()=>ctx?ctx.currentTime:performance.now()/1000;
+function laneMessage(lane,text,detail=''){feedback[lane]={text,detail,until:clock()+.55,displayUntil:clock()+1.4};}
+
+for(const [key,file] of Object.entries({street:'street',stop:'bus-stop',room:'room',clear:'clear'})){const im=new Image();im.onload=()=>{sceneLoaded[key]=performance.now()/1000;};im.src='art/'+file+'.webp';sceneImages[key]=im;}
 let sceneStage=1,story=null;
 const playerName=()=>($('player-name').value.trim()||'Walker');
 const held=lane=>[...inputSources.values()].includes(lane);
@@ -34,14 +44,15 @@ function show(title,text,button,action,kicker=state) {
   $('message').hidden=false;$('message-title').textContent=title;$('message-text').textContent=text;
   $('message-kicker').textContent=kicker;$('message-kicker').hidden=!kicker;$('message-text').hidden=!text;$('main-action').textContent=button;
   $('main-action').disabled=!action;mainAction=action;
-  $('name-label').hidden=state!=='Ready';
+  $('name-label').hidden=state!=='Ready';$('difficulty-label').hidden=state!=='Ready';$('start-stage-label').hidden=state!=='Ready';
   $('back-action').hidden=state!=='Error';
   if(action && state!=='Ready') $('main-action').focus({preventScroll:true});
   announce(title+' '+text);
 }
-function hideMessage(){ $('message').hidden=true; mainAction=null; }
+function hideMessage(){ $('skip-story').hidden=true; $('message').hidden=true; mainAction=null; }
 function setState(next){
- state=next;$('state-label').textContent=next;
+ $('ending-reminder').hidden=!(run.stage===3&&(next==='Playing'||next==='Paused'&&prior==='Playing'));
+ state=next;$('game').classList.toggle('title-screen',next==='Ready');$('lane-tags').hidden=!(next==='Playing'||next==='Stage Failed'||next==='Paused'&&prior==='Playing');$('near-feedback').hidden=next!=='Playing';$('skip-story').hidden=true;$('state-label').textContent=next;
  const cinematic=['Ready','Story','Credits','Clear Ending','Lost Ending'].includes(next==='Paused'?prior:next);
  $('game').classList.toggle('cinematic',cinematic);
 
@@ -52,14 +63,19 @@ function setState(next){
  $('offset').disabled=active();
 }
 async function unlock(){
- if(!ctx){ctx=new AudioContext({latencyHint:'interactive'});bus=ctx.createGain();filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=20000;filter.connect(bus);bus.connect(ctx.destination);bus.gain.value=Number($('volume').value)/100;}
+ if(!ctx){ctx=new AudioContext({latencyHint:'interactive'});bus=ctx.createGain();filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=20000;filter.connect(bus);const limiter=ctx.createDynamicsCompressor();limiter.threshold.value=-6;limiter.knee.value=6;limiter.ratio.value=12;limiter.attack.value=.003;limiter.release.value=.12;bus.connect(limiter);limiter.connect(ctx.destination);bus.gain.value=Number($('volume').value)/100;}
  await ctx.resume();
 }
 function tone(lane,when=ctx.currentTime,kind='hit',duration=.13){
- const o=ctx.createOscillator(),a=ctx.createGain();o.type=kind==='miss'?'sine':'triangle';
- o.frequency.setValueAtTime(kind==='miss'?95:pitches[lane],when);
- if(kind==='miss')o.frequency.exponentialRampToValueAtTime(32,when+duration);
- a.gain.setValueAtTime(0,when);a.gain.linearRampToValueAtTime(kind==='pulse'?.025:kind==='miss'?.06:kind==='call'?.027:.045,when+.008);
+ const success=kind==='perfect'||kind==='hit';
+ if(success)duration=kind==='perfect'?.11:.09;
+ const o=ctx.createOscillator(),a=ctx.createGain();o.type=success||kind==='miss'?'sine':'triangle';
+ // Keep successful hits above the bass and close in pitch so every lane is audible.
+ const frequency=success?[392,440,494,523.25][lane]*(kind==='perfect'?1.125:1):kind==='miss'?260:pitches[lane];
+ o.frequency.setValueAtTime(frequency,when);
+ if(success)o.frequency.exponentialRampToValueAtTime(frequency*.9,when+duration);
+ if(kind==='miss')o.frequency.exponentialRampToValueAtTime(150,when+duration);
+ a.gain.setValueAtTime(0,when);a.gain.linearRampToValueAtTime(kind==='pulse'?.025:kind==='miss'?.16:kind==='call'?.027:kind==='perfect'?.09:.075,when+.006);
  a.gain.exponentialRampToValueAtTime(.0001,when+duration);
  o.connect(a);a.connect(bus);o.start(when);o.stop(when+duration+.02);voices.add(o);o.onended=()=>{voices.delete(o);o.disconnect();a.disconnect();};
 }
@@ -82,37 +98,44 @@ function music(buf,start,when,duration,fadeOut=true){
  if(fadeOut){sourceGain.gain.setValueAtTime(.37,when+duration-2);sourceGain.gain.linearRampToValueAtTime(0,when+duration);}
  source.connect(sourceGain);sourceGain.connect(filter);source.start(when,start,duration);
 }
-function resetVisuals(){lastJudgment='';slideUntil=0;faceSeen=false;endingStreet=false;laneFlash.fill(0);callFlash.fill(0);$('ending-credits').hidden=true;}
+function resetVisuals(){feedback=Array.from({length:4},()=>({text:'',detail:'',until:0}));cueHints=0;cueUntil=0;lastJudgment='';slideUntil=0;faceSeen=false;endingStreet=false;laneFlash.fill(0);callFlash.fill(0);$('ending-credits').hidden=true;}
 async function startStage(index){
  const token=++generation;const config=C.stages[index-1];stopSound(bufferFile!==config.file);clearInputs();run=R.fresh(index);sceneStage=index;notes=[];story=null;resetVisuals();
  setState('Loading');show('Entering '+config.name+'…','Loading this stage’s recording.','Loading',null);
  loadAction=()=>startStage(index);
  try{
   const decoded=await load(config.file);if(token!==generation)return;
-  buffer=decoded;bufferFile=config.file;notes=C.chart(index);
-  epoch=ctx.currentTime+(index===1?4:1.3);filter.frequency.value=20000;
+  buffer=decoded;bufferFile=config.file;notes=C.chart(index,$('difficulty').value);
+  epoch=ctx.currentTime+(index===1?4:3);filter.frequency.value=20000;
   music(buffer,config.start,epoch,config.end-config.start+(index===3?7:0),index!==3);
   for(const n of notes)if(n.side==='caller')tone(n.lane,epoch+R.seconds(n.beat,config.bpm),'call',.16);
   finalFade=false;
-  setState('Playing');hideMessage();$('stage-label').textContent='0'+index+' / '+config.name+' · 2:47 a.m.';
+  setState('Playing');$('stage-label').classList.remove('chapter-entry');void $('stage-label').offsetWidth;$('stage-label').classList.add('chapter-entry');hideMessage();$('stage-label').textContent='0'+index+' / '+config.name+' · 2:47 a.m.';
   $('objective').textContent=config.objective;announce(config.intro);$('game').scrollIntoView({block:'start'});
   if(document.hidden || !document.hasFocus())pause('The page lost focus. Resume when ready.');
  }catch(error){if(token!==generation)return;setState('Error');show('The track could not load',error.message+' Check the connection and try again.','Retry',loadAction);}
 }
 function score(result){
  run.clarity=R.change(run.clarity,result,run.stage);
- if(result==='Perfect'||result==='Good'){run.hits++;run.combo++;run.bestCombo=Math.max(run.bestCombo,run.combo);tone(pressedLane);faceSeen=true;laneFlash[pressedLane]=ctx.currentTime+.32;}
- if(result==='Miss'){run.combo=0;run.misses++;tone(pressedLane,ctx.currentTime,'miss');slideUntil=ctx.currentTime+.35;}
+ if(result==='Perfect'||result==='Good'){run.hits++;run.combo++;run.bestCombo=Math.max(run.bestCombo,run.combo);run[result==='Perfect'?'perfect':'good']++;laneMessage(pressedLane,result.toUpperCase(),result==='Good'?'SLIGHTLY '+pendingDirection+' · '+run.combo+' COMBO':run.combo+' COMBO');tone(pressedLane,ctx.currentTime,result==='Perfect'?'perfect':'hit');faceSeen=true;laneFlash[pressedLane]=ctx.currentTime+.32;}
+ if(result==='Miss'){run.combo=0;run.misses++;tone(pressedLane,ctx.currentTime,'miss');slideUntil=ctx.currentTime+.4;laneMessage(pressedLane,'MISS',pendingDirection==='HOLD'?'LET GO TOO SOON':'');}
  const amount=R.points(result,run.stage);lastJudgment=result+(amount>0?' +':' ')+(amount||'');
- if(run.clarity===0 && state==='Playing'){stopSound();clearInputs();setState('Stage Failed');show('The world slips away.','The scene overwhelmed you, but you are still here. Take a breath. Restart this chapter when you are ready.','Restart Stage',()=>startStage(run.stage));}
+ if(run.clarity===0 && state==='Playing'){stopSound();clearInputs();notes=[];setState('Stage Failed');show('The world slips away.','The scene overwhelmed you, but you are still here. Take a breath. Restart this chapter when you are ready.','Restart Stage',()=>startStage(run.stage));}
 }
-let pressedLane=0;
+let pressedLane=0,pendingDirection='';
 function press(lane,id,stamp){
  if(state==='Clear Ending')return;
  if(state!=='Playing'||inputSources.has(id))return;
  const already=held(lane);inputSources.set(id,lane);document.querySelector('[data-lane="'+lane+'"]').classList.add('held');
  if(already)return;pressedLane=lane;
- const t=eventTime(stamp),n=R.press(notes,lane,t,bpm());if(!n)return;
+ const t=eventTime(stamp),n=R.press(notes,lane,t,bpm());pendingDirection='';
+ if(!n){
+ const nearby=notes.filter(n=>n.side==='player'&&n.lane===lane&&!n.holding).sort((a,b)=>Math.abs(t-R.seconds(a.beat,bpm()))-Math.abs(t-R.seconds(b.beat,bpm())))[0];
+ const hint=nearby?R.timingHint(t-R.seconds(nearby.beat,bpm())):'';
+ if(hint)laneMessage(lane,hint);
+ if(cueHints<3&&notes.some(n=>n.side==='caller'&&n.lane===lane&&Math.abs(t-R.seconds(n.beat,bpm()))<=.15)){cueHints++;cueUntil=clock()+3;announce('That was '+C.stages[run.stage-1].caller+"'s cue. Yours comes two beats later.");}
+ return;
+ }pendingDirection=R.direction(t-R.seconds(n.beat,bpm()));
  const result=R.judge(t-R.seconds(n.beat,bpm()));if(!result)return;
  n.done=true;
  if(n.hold && (result==='Perfect'||result==='Good')){n.done=false;n.holding=true;}
@@ -123,7 +146,7 @@ function release(id,stamp){
  inputSources.delete(id);
  if(!held(lane))document.querySelector('[data-lane="'+lane+'"]').classList.remove('held');
  if(state!=='Playing'||held(lane))return;
- for(const n of notes.filter(n=>n.lane===lane&&n.holding&&!n.done)){pressedLane=lane;score(R.release(n,eventTime(stamp),bpm()));}
+ for(const n of notes.filter(n=>n.lane===lane&&n.holding&&!n.done)){pressedLane=lane;pendingDirection='HOLD';score(R.release(n,eventTime(stamp),bpm()));}
 }
 function pause(reason='Take a breath. Resume from the same beat.'){
  if(!active()||!ctx)return;
@@ -139,9 +162,13 @@ async function resume(){
  announce('Resumed. Follow the arrows.');$('game').scrollIntoView({block:'start'});
 }
 async function restart(){await unlock();await startStage(run.stage||1);}
-function complete(){openStory(run.stage+1);}
+function complete(){
+ const next=run.stage+1;stopSound();clearInputs();setState('Story');
+ show('Chapter '+run.stage+' complete','Clarity '+run.clarity+' · Perfect '+run.perfect+' · Good '+run.good+' · Miss '+run.misses+' · Best combo '+run.bestCombo,'Continue',()=>openStory(next),'Your results');
+}
 const chapters={"1":[["Another late night.","You have barely slept in days. You left your project behind, but cannot remember whether you saved the last change."],["You should know this street.","You walk this way all the time. Tonight, you cannot remember which turn comes next. You try to notice each sign before it slips from your mind."],["Stay with the beat.","The lights seem to move when you look away. You keep your attention on the music and the arrows. One beat, one step. Keep track of where you are."]],"2":[["Did you pass this stop already?","The shelter looks familiar. You cannot remember whether you just walked past it or only imagined doing so. Stop. Look around. Keep listening."],["You should know that voice.","Someone on the bench seems to say your name. You search for a face, a place you met, anything. Nothing comes. The harder you try, the less certain you feel."],["Do not lose your place.","The figure points down the street. You cannot tell whether it is helping or whether anyone is there. Keep your rhythm while you try to remember the way home."]],"3":[["How did you get here?","You are in your room, but the walk from the bus stop is missing. You try to retrace it. The stairs. The door. Nothing stays clear."],["You should recognize yourself.","Your reflection looks back, then seems to move before you do. You know it should follow you. You watch again, trying to hold on to what you know."],["One thing at a time.","Trying to remember everything only makes the room feel further away. Stay with the next arrow. Then the next beat. Do not let the Reflection pull you out of your own rhythm."]]};
 function renderStory(){
+ $('skip-story').hidden=false;
  const page=chapters[story.next][story.page],last=story.page===chapters[story.next].length-1;
  show(page[0],page[1],last?'Begin stage':'Continue',()=>last?(story.next===1?showInstructions():startStage(story.next)):(story.page++,renderStory()),'Chapter '+story.next+' · '+(story.page+1)+' / 3');
 }
@@ -150,7 +177,8 @@ function endingPages(clear,page=0){
  show(pages[page][0],pages[page][1],page===2?(clear?'Play Again':'Start Again'):'Continue',()=>page===2?ready():endingPages(clear,page+1),'Ending · '+(page+1)+' / 3');
 }
 function showInstructions(){
- show("Your arrows are on the right.","Press the matching arrow key when a moving arrow reaches its outline. On a phone, use the arrow pads below. Hold notes with tails until the tail ends. The left side is your opponent. You will have four seconds to get ready.","Ready — start countdown",()=>startStage(1),"How to play");
+ $('skip-story').hidden=true;
+ show("Your arrows are on the right.","Press the matching arrow key when a moving arrow reaches its outline. On a phone, use the arrow pads below. Hold notes with tails until the tail ends. The smaller left panel sings first. Your matching arrow arrives two beats later: play only when it reaches a target in the warm YOU panel. You will have four seconds to get ready.","Ready — start countdown",()=>startStage(1),"How to play");
 }
 async function openStory(next){
  const token=++generation;stopSound(true);clearInputs();notes=[];story={next,page:0};sceneStage=next;endingStreet=false;
@@ -188,16 +216,17 @@ function credits(){++generation;stopSound(true);setState('Credits');show('The wa
 function ready(){
  ++generation;stopSound(true);clearInputs();run=R.fresh();notes=[];story=null;sceneStage=1;epoch=0;resetVisuals();$('player-name').value='Walker';setState('Ready');
  $('stage-label').textContent='2:47 A.M. · A ten-minute walk home';$('objective').textContent='Get home before the street stops making sense.';
- show('2:47 a.m.','A ten-minute walk home. Keep the beat.','Start',async()=>{try{await unlock();await openStory(1);}catch(e){setState('Error');loadAction=ready;show('Audio could not start',e.message,'Back to title',ready);}},'');
+ show('2:47 a.m.','A ten-minute walk home. Keep the beat.','Start',async()=>{try{await unlock();await openStory(Number($('start-stage').value)||1);}catch(e){setState('Error');loadAction=ready;show('Audio could not start',e.message,'Back to title',ready);}},'');
 
 }
 function tick(){
  const t=now();
+ $('ending-reminder').hidden=!(run.stage===3&&t<5&&(state==='Playing'||state==='Paused'&&prior==='Playing'));
  if(state==='Playing'){
   const config=C.stages[run.stage-1];
   for(const n of notes){
    if(state!=='Playing')break;
-   pressedLane=n.lane;
+   pressedLane=n.lane;pendingDirection=n.holding?'HOLD':'';
    if(n.holding&&!n.done){
     if(t>=R.seconds(n.beat+n.hold,config.bpm))score(R.release(n,t,config.bpm));
     else if(!held(n.lane)&&t>resumeGrace)score(R.release(n,t,config.bpm));
@@ -236,29 +265,33 @@ function arrow(x,y,lane,fill=true,size=19){
  }
  g.restore();
 }
-function person(x,y,color,headphones=true,reflection=false,faceOffset=0,faceClear=true){
- g.save();g.translate(x,y);g.strokeStyle=color;g.lineWidth=4;g.lineJoin='round';g.fillStyle='#202236';
- g.beginPath();g.moveTo(-20,22);g.lineTo(-28,80);g.lineTo(28,80);g.lineTo(20,22);g.closePath();g.fill();g.stroke();
- g.save();g.translate(faceOffset,0);g.beginPath();g.ellipse(0,0,23,29,0,0,Math.PI*2);g.fill();g.stroke();if(faceClear){g.fillStyle=color;g.fillRect(-11,-5,5,4);g.fillRect(6,-5,5,4);g.beginPath();g.moveTo(-7,10);g.lineTo(7,10);g.stroke();}g.restore();
- g.beginPath();g.moveTo(-12,80);g.lineTo(-18,112);g.moveTo(12,80);g.lineTo(18,112);g.moveTo(-22,32);g.lineTo(-40,60);g.moveTo(22,32);g.lineTo(reflection?65:40,reflection?12:60);g.stroke();
- if(headphones){g.strokeStyle='#FF9A3C';g.beginPath();g.arc(0,-2,29,Math.PI,0);g.stroke();g.fillStyle='#FF9A3C';g.fillRect(-32,-10,7,25);g.fillRect(25,-10,7,25);}
- g.restore();
-}
 function scenery(t){
  const visual=state==='Paused'?prior:state;
  const clear=visual==='Clear Ending',lost=visual==='Lost Ending';
  const backgroundStage=visual==="Story"&&story?story.next:sceneStage;
  const key=clear?'clear':endingStreet?'street':backgroundStage===2?'stop':backgroundStage===3?'room':'street';
  const im=sceneImages[key],cinematic=['Ready','Story','Clear Ending','Credits'].includes(visual);
- const loss=visual==='Ready'?.65:cinematic?0:lost?1:(1-run.clarity/100);
+ const pulse=clock()<slideUntil?1-(slideUntil-clock())/.4:0;
+ const calling=notes.some(n=>n.side==='caller'&&Math.abs(R.seconds(n.beat,bpm())-t)<.2);
+ const loss=visual==='Ready'?.35:cinematic?0:lost?1:Math.min(1,.08*sceneStage+(1-run.clarity/100)*.8+(calling?.12:0));
+ if(key!==sceneKey){previousScene=sceneKey;sceneKey=key;sceneChanged=performance.now()/1000;}
+ const fade=reduced.checked?1:Math.min(1,Math.max(0,(performance.now()/1000-Math.max(sceneChanged,sceneLoaded[key]??performance.now()/1000))/.6));
  g.save();g.fillStyle='#0E1020';g.fillRect(0,0,960,540);
- const movement=reduced.checked||cinematic?0:Math.sin(t*.7)*loss*3;
+ const movement=reduced.checked||cinematic?0:Math.sin(t*.7)*loss*7;
  g.translate(movement,0);
  // Distort the scene, never the independent note/control layers.
- g.filter='blur('+(loss*2.2)+'px) saturate('+(1-loss*.25)+')';
- if(im.complete&&im.naturalWidth)g.drawImage(im,-8,-4,976,549);
- else{g.fillStyle='#211b30';g.fillRect(-8,0,976,540);person(730,325,'#F3E8D2');}
- g.fillStyle='rgba(64,30,106,'+(loss*.18)+')';g.fillRect(-8,0,976,540);
+ g.filter='blur('+(loss*5+pulse*3)+'px) saturate('+(1-loss*.25)+')';
+ if(im.complete&&im.naturalWidth){
+ const old=sceneImages[previousScene];if(fade<1&&old?.complete&&old.naturalWidth)g.drawImage(old,-8,-4,976,549);
+ g.globalAlpha=fade;g.drawImage(im,-8,-4,976,549);
+ if(!cinematic&&(loss>.55||pulse>0)){g.globalAlpha=fade*(loss*.17+pulse*.2);g.drawImage(im,reduced.checked?0:10+movement,-4,976,549);}
+ g.globalAlpha=1;
+ if(sceneStage===3&&pulse>0&&!reduced.checked){g.save();g.beginPath();g.rect(55,130,280,310);g.clip();g.globalAlpha=pulse*.45;g.drawImage(im,-8+Math.sin(t*15)*12,-4,976,549);g.restore();}
+ }
+ // No placeholder person: the unpainted loading state is simply night.
+ if(!cinematic){const v=g.createRadialGradient(480,270,100,480,270,540);v.addColorStop(0,'rgba(67,25,100,0)');v.addColorStop(1,'rgba(67,25,100,'+(loss*.55+pulse*.2)+')');g.fillStyle=v;g.fillRect(0,0,960,540);}
+ if(!reduced.checked&&!cinematic&&loss>.65){g.fillStyle='rgba(10,8,25,'+(.055*(1+Math.sin(t*6)))+')';g.fillRect(0,0,960,540);}
+ g.fillStyle='rgba(64,30,106,'+(loss*.18+pulse*.22)+')';g.fillRect(-8,0,976,540);
  if(!reduced.checked&&state==='Stage Failed'){g.fillStyle='rgba(14,16,32,.6)';g.fillRect(-8,0,976,540);}
  g.restore();
  // Scene cues never move, hide or alter the independent arrow layer.
@@ -288,57 +321,96 @@ function scenery(t){
 
 function draw(t){
  // Keep the logical stage coordinates while rendering at display pixel density.
- const displayWidth=canvas.getBoundingClientRect?canvas.getBoundingClientRect().width:960;
- const scale=Math.max(1,Math.min(3,(displayWidth||960)/960*(window.devicePixelRatio||1)));
+ const visualTime=performance.now()/1000;
+ if(visualTime-lastLayout>.5){viewWidth=canvas.getBoundingClientRect?canvas.getBoundingClientRect().width:960;lastLayout=visualTime;}
+ const displayWidth=viewWidth;
+ const scale=Math.max(1,Math.min(2,(displayWidth||960)/960*(window.devicePixelRatio||1)));
  const width=Math.round(960*scale),height=Math.round(540*scale);
  if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
  g.setTransform(width/960,0,0,height/540,0,0);
  g.imageSmoothingEnabled=true;g.imageSmoothingQuality="high";
- g.clearRect(0,0,960,540);scenery(t);
+ g.clearRect(0,0,960,540);
+ // Scenery effects render at logical resolution, at 30 Hz; arrows still follow every frame.
+ if(visualTime-lastSceneFrame>=1/30||lastSceneState!==state){
+  const front=g;g=scenePen;g.clearRect(0,0,960,540);scenery(t);g=front;
+  lastSceneFrame=visualTime;lastSceneState=state;
+ }
+ g.drawImage(sceneLayer,0,0);
+
  // Everything below is outside the scenery filter and transform.
- const playing=['Playing','Stage Failed'].includes(state)||state==='Paused'&&prior==='Playing';
- if(!playing){$('clarity-number').textContent=run.clarity;return;}
- for(let side=0;side<2;side++){
-  const start=side?660:90;g.fillStyle='rgba(40,48,65,.94)';g.fillRect(start-30,35,240,228);g.strokeStyle='#697487';g.lineWidth=1;g.strokeRect(start-30,35,240,228);
-  g.fillStyle='#F3E8D2';g.font='13px sans-serif';g.fillText(side?'YOU · MATCH THE ARROWS':run.stage?C.stages[run.stage-1].caller.toUpperCase():'LISTEN · WATCH',start-12,25);
+ const playing=state==='Playing'||state==='Paused'&&prior==='Playing';
+ if(!fontReady)return;
+ if(!playing){text('clarity-number',run.clarity);return;}
+
+ const mobile=(displayWidth||960)<600, stamp=clock();
+ text('caller-tag',C.stages[run.stage-1].caller+' · sings first');
+ const latest=feedback.filter(f=>f.displayUntil>stamp).sort((a,b)=>b.until-a.until)[0];
+ $('near-feedback').hidden=state!=='Playing';
+ text('near-feedback',latest?[latest.text,latest.detail].filter(Boolean).join(' · '):cueUntil>stamp?'That was '+C.stages[run.stage-1].caller+"’s cue. Yours comes two beats later.":t>=0&&t<16*60/bpm()&&run.hits<5?'Your arrows: match these ↑':'');
+
+ const panels=[{x:28,y:52,w:270,h:244,start:64,step:65,size:17},{x:470,y:52,w:462,h:390,start:527,step:116,size:27}];
+ const font=(size,weight=600)=>{g.font=weight+' '+size+'px "Space Grotesk",sans-serif';};
+ panels.forEach((p,side)=>{
+  g.save();g.beginPath();g.roundRect(p.x,p.y,p.w,p.h,16);g.fillStyle=side?'rgba(30,21,34,.84)':'rgba(24,29,48,.55)';g.fill();
+  g.strokeStyle=side?'#d99857':'#566079';g.lineWidth=side?2:1;
+  g.shadowColor=side?'#ff9a3c':'#665887';g.shadowBlur=reduced.checked?0:side?(t<16*60/bpm()&&run.hits<5?12+7*Math.cos(t*bpm()/60*Math.PI*2):10):2;g.stroke();g.shadowBlur=0;
+  const targetY=p.y+(side?138:84);
+  font(mobile?30:21);g.fillStyle=side?'#ffcc8e':'#c1bdd5';if(!mobile)g.fillText(side?'YOU':C.stages[run.stage-1].caller,p.x+18,p.y-14);
+  if(!mobile&&!side){font(14);g.save();g.textAlign='center';g.fillText(side?'MATCH THESE ARROWS':'SINGS FIRST',p.x+p.w/2,p.y+28);g.restore();}
+  g.save();g.beginPath();g.roundRect(p.x+3,p.y+(side?78:3),p.w-6,p.h-(side?81:6),13);g.clip();
   for(let lane=0;lane<4;lane++){
-   const x=start+lane*60;g.strokeStyle='#353247';g.setLineDash([3,9]);g.beginPath();g.moveTo(x,100);g.lineTo(x,260);g.stroke();g.setLineDash([]);
-   arrow(x,82,lane,false);
-   if(ctx && side && laneFlash[lane]>ctx.currentTime){
-    const progress=1-(laneFlash[lane]-ctx.currentTime)/.32;
-    g.save();g.globalAlpha=1-progress;
-    g.shadowColor=colors[lane];g.shadowBlur=reduced.checked?0:16*(1-progress);
-    arrow(x,82,lane,true,reduced.checked?21:21+4*Math.sin(progress*Math.PI));
-    if(!reduced.checked){
-     // Arrow-shaped echoes and directional sparks expand from the target.
-     g.globalAlpha=(1-progress)*.65;arrow(x,82,lane,false,23+progress*20);
-     g.translate(x,82);g.rotate(angles[lane]);g.strokeStyle=colors[lane];g.lineWidth=2;
-     for(const sign of [-1,1]){g.beginPath();g.moveTo(sign*(22+progress*15),-8-progress*10);g.lineTo(sign*(26+progress*22),-17-progress*14);g.stroke();}
-    }
-    g.restore();
-   }else if(ctx&&!side&&notes.some(n=>n.side==='caller'&&n.lane===lane&&Math.abs(R.seconds(n.beat,bpm())-t)<.16)){g.save();g.globalAlpha=.65;arrow(x,82,lane,true,21);g.restore();}
+   const x=p.start+lane*p.step;
+   g.strokeStyle=side?'#5b414344':'#54567333';g.lineWidth=1;g.beginPath();g.moveTo(x,targetY);g.lineTo(x,p.y+p.h);g.stroke();
+   const f=feedback[lane],miss=side&&f.until>stamp&&f.text==='MISS';
+   g.globalAlpha=miss?.3:side?1:.65;arrow(x,targetY,lane,false,p.size);g.globalAlpha=1;
+   if(side&&laneFlash[lane]>stamp){
+    const phase=1-(laneFlash[lane]-stamp)/.32;
+    g.save();g.shadowColor=colors[lane];g.shadowBlur=24;
+    arrow(x,targetY,lane,true,p.size+(reduced.checked?0:5*Math.sin(phase*Math.PI)));
+    g.globalAlpha=1-phase;g.strokeStyle=colors[lane];g.lineWidth=3;g.beginPath();g.arc(x,targetY,p.size+6+(reduced.checked?0:phase*22),0,Math.PI*2);g.stroke();g.restore();
+   }
   }
- }
- if(playing){
-  g.save();g.beginPath();g.rect(0,38,960,232);g.clip();
-  for(const n of notes){
-   const dt=R.seconds(n.beat,bpm())-t;if(n.done||dt>1.5||dt<-.22&&!n.holding)continue;
-   const x=(n.side==='player'?660:90)+n.lane*60;
-   let y=82+dt*128;
-   if(n.hold){const end=82+(R.seconds(n.beat+n.hold,bpm())-t)*128;g.strokeStyle=colors[n.lane];g.lineWidth=9;g.beginPath();g.moveTo(x,n.holding?82:y);g.lineTo(x,end);g.stroke();}
-   if(n.holding)y=82;arrow(x,y,n.lane,true);
+  for(const n of notes.filter(n=>n.side===(side?'player':'caller'))){
+   const dt=R.seconds(n.beat,bpm())-t;if(n.done||dt>2||dt<-.22&&!n.holding)continue;
+   const x=p.start+n.lane*p.step,y=n.holding?targetY:targetY+dt*128;
+   g.globalAlpha=(side?1:.6)*Math.min(1,Math.max(0,(p.y+p.h-y)/42));
+   if(n.hold){g.strokeStyle=colors[n.lane];g.lineWidth=side?10:6;g.beginPath();g.moveTo(x,y);g.lineTo(x,targetY+(R.seconds(n.beat+n.hold,bpm())-t)*128);g.stroke();}
+   arrow(x,y,n.lane,true,p.size);g.globalAlpha=1;
   }g.restore();
+  g.restore();
+ });
+ // Reserved header strip is outside the clipped note area (y >= 130).
+ if(!latest){g.save();g.fillStyle='#211a2e';g.strokeStyle='#b78354';g.lineWidth=2;g.beginPath();g.roundRect(480,60,442,62,8);g.fill();g.stroke();g.textAlign='center';font(mobile?25:22,700);g.fillStyle='#ffe0ae';g.fillText('MATCH THESE ARROWS',701,99,418);g.restore();}
+
+ if(t>=0 && latest){
+  const good=latest.text==='PERFECT'||latest.text==='GOOD';
+  const color=latest.text==='PERFECT'?'#86f3df':good?'#ffe0a0':latest.text==='MISS'?'#ffafba':'#d6c2ff';
+  g.save();g.fillStyle=color;g.strokeStyle='#fff5e5';g.lineWidth=3;
+  g.beginPath();g.roundRect(480,60,442,62,8);g.fill();g.stroke();
+  g.textAlign='center';g.fillStyle='#151322';font(mobile?32:28,700);
+  g.fillText(latest.text,701,latest.detail?86:100,418);
+  if(latest.detail){font(mobile?23:18,700);g.fillStyle='#151322';g.fillText(latest.detail,701,110,418);}
+  g.restore();
  }
- const eye=320+run.clarity*3.2;g.fillStyle='#7A4CFF';g.fillRect(320,494,160,10);g.fillStyle='#FF9A3C';g.fillRect(480,494,160,10);
- g.fillStyle='#F3E8D2';g.font='16px sans-serif';g.fillText('Lost',265,505);g.fillText('Clear',658,505);
- g.beginPath();g.moveTo(eye-15,499);g.quadraticCurveTo(eye,478,eye+15,499);g.quadraticCurveTo(eye,520,eye-15,499);g.fillStyle='#0E1020';g.fill();g.strokeStyle='#F3E8D2';g.lineWidth=2;g.stroke();g.beginPath();g.arc(eye,499,4,0,Math.PI*2);g.fillStyle='#F3E8D2';g.fill();
- if(state==='Playing'&&t<0){g.fillStyle='#FF9A3C';g.font='bold 40px sans-serif';g.fillText(String(Math.ceil(-t)),463,295);}
- $('clarity-number').textContent=run.clarity;$('judgment').textContent=lastJudgment||'Hit every arrow · Hold the tails';
+ // Clarity remains independent of the scene distortion.
+ g.save();const missPulse=Math.max(0,(slideUntil-stamp)/.4),warm=Math.max(...laneFlash)>stamp;
+ if(!reduced.checked)g.translate(Math.sin(stamp*60)*missPulse*5,0);
+ const gradient=g.createLinearGradient(270,0,690,0);gradient.addColorStop(0,'#4b1c66');gradient.addColorStop(.49,'#9560dc');gradient.addColorStop(.51,'#cb793f');gradient.addColorStop(1,'#ffc77d');
+ g.fillStyle=gradient;g.beginPath();g.roundRect(270,480,420,22,11);g.fill();g.strokeStyle=warm?'#fff1be':'#8b657b';g.stroke();
+ g.strokeStyle='#f3e8d2';g.beginPath();g.moveTo(480,476);g.lineTo(480,507);g.stroke();
+ font(mobile?34:23,700);g.fillStyle='#c3a3e8';g.shadowColor='#7a4cff';g.shadowBlur=reduced.checked?0:3;g.fillText('Lost',178+(reduced.checked?0:Math.sin(t*2)*2),501);
+ g.shadowColor='#ff9a3c';g.shadowBlur=8;g.fillStyle='#ffd398';g.fillText('Clear',714,501);g.shadowBlur=0;
+ const eye=270+run.clarity*4.2,opening=5+run.clarity*.12;
+ g.beginPath();g.moveTo(eye-16,491);g.quadraticCurveTo(eye,491-opening,eye+16,491);g.quadraticCurveTo(eye,491+opening,eye-16,491);g.fillStyle='#fff0d5';g.fill();g.strokeStyle='#d8b4e8';g.lineWidth=2;g.stroke();
+ g.save();g.clip();g.beginPath();g.arc(eye,491,9,0,Math.PI*2);g.fillStyle=run.clarity>50?'#df9b45':'#8157bb';g.fill();g.beginPath();g.arc(eye,491,4.5,0,Math.PI*2);g.fillStyle='#151322';g.fill();g.beginPath();g.arc(eye+2,488,2,0,Math.PI*2);g.fillStyle='#fff';g.fill();g.restore();g.restore();
+ if(state==='Playing'&&t<0){g.save();g.fillStyle='#151322';g.strokeStyle='#b78354';g.lineWidth=2;g.beginPath();g.roundRect(480,60,442,62,8);g.fill();g.stroke();g.textAlign='left';font(22,700);g.fillStyle='#ffe0ae';g.fillText('STAGE '+run.stage+' · GET READY',492,99,330);g.textAlign='center';font(36,700);g.fillText(String(Math.ceil(-t)),891,104);g.restore();}
+ text('clarity-number',run.clarity);text('judgment',lastJudgment||'Hit every arrow · Hold the tails');
  $('progress').textContent='Chapter '+run.stage+' · '+Math.min(100,Math.max(0,Math.floor(t/(C.stages[run.stage-1].end-C.stages[run.stage-1].start)*100)))+'% · Combo '+run.combo;
  $('journey-fill').style.width=Math.min(100,Math.max(0,t/(C.stages[run.stage-1].end-C.stages[run.stage-1].start)*100))+'%';
 }
 $('main-action').addEventListener('click',()=>mainAction?.());
 $('back-action').addEventListener('click',ready);
+$('skip-story').addEventListener('click',()=>{if(state==='Story'&&story){const next=story.next;if(next===1)showInstructions();else startStage(next);}});
 
 $('pause').addEventListener('click',()=>state==='Paused'?resume():pause());
 $('restart').addEventListener('click',restart);

@@ -5,7 +5,7 @@ const stages=[
 {name:'The Stranger',caller:'The Stranger',bpm:91,start:.03,end:63.33,bars:24,file:'the-other-place.mp3',objective:'Follow the directions. Hold on to your own rhythm.',intro:'The Stranger seems to know your name. Answer the visible patterns; hold long notes through their tails.'},
 {name:'Your room',caller:'The Reflection',bpm:115,start:108.55,end:175.33,bars:32,file:'acid-trance.mp3',objective:'Finish the song. Make the room feel like yours.',intro:'The room will not settle. Keep your own rhythm against the Reflection.'}
 ];
-function chart(stage){
+function chart(stage,mode='normal'){
 const notes=[],s=stages[stage-1],last=stage===3?123:94;
 for(let bar=0;bar<s.bars;bar++){
 let offsets=stage===1?(bar<4?[0,1,2,3]:bar<10?[0,1,2,3,3.5]:[0,1,1.5,2,3,3.5]):stage===2?(bar%2===0?[0,1,2,3]:[0,1,2,3,3.5]):bar<4?[0,1,2,3]:bar%2===0?[0,1,2,3]:[0,.5,1,2,2.5,3];
@@ -23,6 +23,15 @@ offsets.forEach((off,j)=>{
  notes.push({beat,lane,hold,side:'player'});
  if(j%2===0&&beat>=2)notes.push({beat:beat-2,lane,hold:0,side:'caller'});
 });
+}
+if(mode==='hard'){
+ // Add at most one on-beat eighth per bar, with no simultaneous heads or hold collisions.
+ for(let bar=2;bar<s.bars-1;bar++){
+  const beat=bar*4+2.5;if(beat>last||notes.some(n=>n.side==='player'&&Math.abs(n.beat-beat)<.49))continue;
+  const lane=[0,1,2,3].map(i=>(i+bar)%4).find(l=>!notes.some(n=>n.side==='player'&&n.lane===l&&beat>=n.beat-.25&&beat<=n.beat+n.hold+.25));
+  if(lane===undefined)continue;
+  notes.push({beat,lane,hold:0,side:'player'},{beat:beat-2,lane,hold:0,side:'caller'});
+ }
 }
 return notes.sort((a,b)=>a.beat-b.beat).map((n,id)=>({...n,id,done:false,holding:false}));
 }

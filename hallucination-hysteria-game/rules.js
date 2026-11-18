@@ -11,7 +11,9 @@
     ending: clarity => clarity > 50 ? 'Clear Ending' : 'Lost Ending',
     seconds: (beat, bpm) => beat * 60 / bpm,
     songTime: (contextTime, origin, latency, offsetMs) => contextTime - origin - latency - offsetMs / 1000,
-    fresh(stage = 0) { return {stage, clarity: 50, combo: 0, bestCombo: 0, hits: 0, misses: 0}; },
+    fresh(stage = 0) { return {stage, clarity: 50, combo: 0, bestCombo: 0, hits: 0, misses: 0, perfect: 0, good: 0}; },
+    timingHint(error) { const a=Math.abs(error); return a>.150+1e-9&&a<=.400+1e-9 ? (error<0?'TOO EARLY':'TOO LATE') : ''; },
+    direction(error) { return error<0?'EARLY':'LATE'; },
     eventTime(songTime, stamp, performanceNow) { const d=performanceNow-stamp; return songTime-(Number.isFinite(d)&&d>=0&&d<1000?d/1000:0); },
     press(notes, lane, time, bpm) {
       return notes.filter(n => n.side === 'player' && n.lane === lane && !n.done && !n.holding && Math.abs(time - R.seconds(n.beat, bpm)) <= .150 + 1e-9)
